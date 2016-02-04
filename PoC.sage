@@ -1,12 +1,23 @@
-# this is socat's modulus. We suspect its factors are too big for us to find
-
-p = 0xCC17F2DC96DF59A446C53E0EB826550CE388C1CEA7BCB3BF1694D8A945A2CEA95B22255F9259941C22BFCBC8C857CBBFBC0EE840F98703BF609B08C68E99C605FC00D66D90A8F5F8D38D43C88F7ABDBB28AC04694A0B867337F06D4F04F6F5AFBFAB8ECE75534D7F7D17780E12464AAF9599EFBCA6C54177437AB9EC8E073C6D
-
 #
-# generate a new prime p of size 1024 bits s.t. p=p_1*...*p_n with each p_i - 1 smooth
+# HELPERS
 #
 
+def multiply_factors(factors):
+    p = 1
+    for factor in factors:
+        p *= factor
+    return p
+
+separator = "="*32
+
+#
+# METHODS TO GENERATE THE MODULUS
 # 
+
+# Method 1: generate a new prime p of size 1024 bits s.t. p=p_1*...*p_n with each p_i - 1 smooth
+#
+
+# code not finished
 def gen1(number, size_total):
     number_of_prime = 2
     p = 1 << (1024//number_of_prime)
@@ -18,14 +29,8 @@ def gen1(number, size_total):
         p += 1
     return factors
 
-def multiply_factors(factors):
-    p = 1
-    for factor in factors:
-        p *= factor
-    return p
 
-# try generating a bunch of small primes, which multiplied together + 1 is a prime
-# this take way too long as of now
+# Method 2: try generating a bunch of small primes, which multiplied together + 1 is a prime
 def gen2(number, size_total):
     result = []
     for ii in range(number):
@@ -40,15 +45,7 @@ def gen2(number, size_total):
         result.append(prime)
     return result
 
-# so here we use it as such
-# p = p_1 * p_2 s.t. p_1 - 1 and p_2 -1 are smooth
-
-raw_input("press a key to continue")
-factors = gen2(2, 1024)
-p = multiply_factors(factors)
-raw_input("press a key to continue")
-
-# Another method would be to generate 
+# Method 3:
 # p prime s.t. p = 2p_1p_2 + 1 with p_1 small, p_2 big
 # so the order will be p - 1 and we have p_1|p - 1
 # choose a generator g of that subgroup of order p_1
@@ -65,6 +62,46 @@ def gen3(size_total):
         prime = p_1*p_2*2 + 1
 
     return prime
+
+#
+# GENERATING THE NON-PRIME MODULUS
+#
+
+# so here we use it as such
+# p = p_1 * p_2 s.t. p_1 - 1 and p_2 -1 are smooth
+
+print separator
+print "We are generating the non-prime modulus as such:"
+print "p = p_1 * p_2"
+print "such that p_1 - 1 and p_2 -1 are both smooth"
+factors = gen2(2, 1024)
+print separator
+p_1 = factors[0]
+p_2 = factors[1]
+print "p_1 =", p_1
+print "p_1 - 1 =", (p_1-1).factor()
+print "and"
+print "p_2 =", p_2
+print "p_2 - 1 =", (p_2-1).factor()
+print separator
+p = multiply_factors(factors)
+print "We now have our non-prime modulus p of size", len(bin(p)) - 2
+print p
+print separator
+print "The order of the group created should be (p_1-1)*(p_2-1)"
+print "which is smooth..."
+order_group = (p_1-1)*(p_2-1)
+print order_group
+print separator
+print "Let's verify that 2^order = 1 mod p"
+verif = power_mod(2, order_group, p)
+if verif != 1:
+    print "Unfortunately not...", verif
+    sys.exit(1)
+print "All good:", verif
+print separator
+raw_input("Press a key to continue...")
+
 
 #prime3 = gen3(1024)
 #print prime3

@@ -34,3 +34,8 @@ How likely is it a human error?
 
 * [Someone proposed](https://www.reddit.com/r/crypto/comments/43wh7h/the_socat_backdoor/czlxydf) "Swap each 4-byte section or 8-byte section as though someone messed up endian conversion." I haven't tried that yet.
 
+# Resources
+
+* [Thai Duong's blogpost](http://vnhacker.blogspot.com/2016/02/exploiting-diffie-hellman-bug-in-socat.html)
+* [crypto stackexchange's post](http://crypto.stackexchange.com/questions/32415/how-does-a-non-prime-modulus-for-diffie-hellman-allow-for-a-backdoor/32431?noredirect=1)
+* [reddit's thread](https://www.reddit.com/r/crypto/comments/43wh7h/the_socat_backdoor/)
