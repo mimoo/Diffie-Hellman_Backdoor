@@ -18,10 +18,11 @@ Looking at the commit logs you can see that they used a 512 bits Diffie-Hellman 
 
 The person who pushed the commit is *Gerhard Rieger* who is the same person who fixed it a year later. In the comment he refers to *Zhigang Wang*, an Oracle employee at the time who has yet to comment on his mistake.
 
-This research tries to understand how this could be a backdoor. And more particularly, a [NOBUS](https://en.wikipedia.org/wiki/NOBUS) one (*Nobody But Us*). In the quest of building proofs of concepts I will also check:
+This research tries to understand how this could be a backdoor. And more particularly, a [NOBUS](https://en.wikipedia.org/wiki/NOBUS) one (*Nobody But Us*). Here are the objectives of this research:
 
-* if I can use the backdoor
-* if it really seems like it is a backdoor
+* Build a proof of concept of such a NOBUS backdoor
+* In failures of building NOBUS backdoors, check if I can use the socat backdoor
+* Try to answer: "does it look like a backdoor?"
 
 # Human errors
 
