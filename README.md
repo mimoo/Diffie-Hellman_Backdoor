@@ -34,6 +34,41 @@ How likely is it a human error?
 
 * [Someone proposed](https://www.reddit.com/r/crypto/comments/43wh7h/the_socat_backdoor/czlxydf) "Swap each 4-byte section or 8-byte section as though someone messed up endian conversion." I haven't tried that yet.
 
+# Pohlig Hellman and small subgroup attacks
+
+I won't write an explanation of these attacks here, but they are the reason why a non-prime modulus could be a NOBUS backdoor.
+
+If a backdoor allowing such attacks was generated with a prime modulus, then anyone could reveal the order (by computing `modulus - 1`) and see if it is smooth by simply factoring it (and then take advantage of the backdoor).
+
+# How to implement a NOBUS DH
+
+There is a working proof of concept in PoC.sage that implements one way of doing it (I expect more ways to generate backdoored primes)
+
+It creates a non-prime modulus `p = p_1 * p_2` with `p_i` primes, such that
+`p_i - 1` is smooth. Since the order of the group will be `(p_1 - 1)(p_2 - 1)` (smooth) and known only to the malicious person who generated `p`, Pohlig-Hellman can be used to recover the private key
+
+In the proof of concept the small subgroup attack is implemented instead of Pohlig-Hellman just because it seemed easier to code. They are relatively equivalent except that in practice an ephemeral key is used and such small subgroup attacks are not that practical.
+
+Note that these issues should not arrise if the DH parameters were generated properly, that is the order and subgroups orders should be known (and used to verify that the public key received lies in the correct subgroup). See [rfc2785](https://tools.ietf.org/html/rfc2785) for more information.
+
+![proof of concept](http://i.imgur.com/CL2wk5V.png)
+
+The proof of concept is a step by step explanation of what's happening. Above you can see the generation of the backdoored modulus, bellow you can see the attack tacking place and recovering discrete logs of each of the subgroups
+
+![discrete logs](http://i.imgur.com/KojNtVY.png)
+
+To run it yourself you will need Sage. You can also use an online version of it a [cloud.sagemath.com](http://cloud.sagemath.com).
+
+# How to reverse socat's non-prime dh1024_p
+
+from what we learned in implementing such a backdoor, we will see how we can reverse it to use it ourselves.
+
+* What are the chances that if this was non-prime was a mistake, it generated factors large enough so that no one can reverse it?
+
+# How to reverse socat's new prime dh2048_p's order
+
+A new order has been generated, but we know nothing about its order. This doesn't sound good and this section should explain why (from a backdoor point of view) and explain how we can try to reverse it...
+
 # Resources
 
 * [Thai Duong's blogpost](http://vnhacker.blogspot.com/2016/02/exploiting-diffie-hellman-bug-in-socat.html)
