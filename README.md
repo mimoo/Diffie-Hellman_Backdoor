@@ -73,6 +73,15 @@ A new order has been generated, but we know nothing about its order. This doesn'
 
 The above shows that the new modulus was not generated as `p = 2q + 1`
 
+EDIT: But wait. Actually it was. When I do `/2` it converts the number to a rational whereas `is_prime` works on integers. It fails silently (which is a bad behavior). So the `q` is indeed "probably" a prime:
+
+```python
+proof.artihmetic(False)
+is_prime(q) #-> True
+```
+
+The research stops here in this section.
+
 # Resources
 
 * [Thai Duong's blogpost](http://vnhacker.blogspot.com/2016/02/exploiting-diffie-hellman-bug-in-socat.html)
