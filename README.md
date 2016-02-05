@@ -76,7 +76,7 @@ The above shows that the new modulus was not generated as `p = 2q + 1`
 EDIT: But wait. Actually it was. When I do `/2` it converts the number to a rational whereas `is_prime` works on integers. It fails silently (which is a bad behavior). So the `q` is indeed "probably" a prime:
 
 ```python
-proof.artihmetic(False)
+proof.arithmetic(False)
 is_prime(q) #-> True
 ```
 
