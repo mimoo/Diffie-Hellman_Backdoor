@@ -9,7 +9,6 @@ dh2048_p = 0x00dc216456bd9cb2acbec998ef953e26fab557bcd9e675c043a21c7a85df34ab57a
 dh2048_g = 2
 
 # is_prime(dh2048_p) -> True
-
 order = dh2048_p - 1
 
 factors = [2]

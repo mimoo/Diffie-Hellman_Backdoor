@@ -24,24 +24,11 @@ def factor_list(factors):
     return factors_real
 
 #
-# METHODS TO GENERATE THE MODULUS
+# GENERATING THE NON-PRIME MODULUS
 # 
 
-# Method 1: generate a new prime p of size 1024 bits s.t. p=p_1*...*p_n with each p_i - 1 smooth
-# **code not finished**
-def gen1(number, size_total):
-    number_of_prime = 2
-    p = 1 << (1024//number_of_prime)
-    factors = []
-    for ii in range(2):
-        while not is_prime(p):
-            p +=1
-        factors.append(p)
-        p += 1
-    return factors
-
-# Method 2: try generating a bunch of small primes, which multiplied together + 1 is a prime
-def gen2(number, size_total):
+# try generating a bunch of small primes, which multiplied together + 1 is a prime
+def gen_prime(number, size_total):
     result = []
     for ii in range(number):
         prime_size = size_total // number
@@ -55,36 +42,19 @@ def gen2(number, size_total):
         result.append(prime)
     return result
 
-# Method 3:
-# p prime s.t. p = 2p_1p_2 + 1 with p_1 small, p_2 big
-# so the order will be p - 1 and we have p_1|p - 1
-# choose a generator g of that subgroup of order p_1
-# >> this is taking way too much time :/ <<
-def gen3(size_total):
-    # pick 2 primes, one small one big
-    size_small = 32
-    size_big = size_total - size_small - 2
-    prime = 0
-    while not is_prime(prime):
-        p_1=random_prime(1<<(size_small+2), lbound=1<<(size_small-1))
-        p_2=random_prime(1<<(size_big+2), lbound=1<<(size_big-1))
-        prime = p_1*p_2*2 + 1
-
-    return prime
-
-#
-# GENERATING THE NON-PRIME MODULUS
-#
-
 # so here we use it as such
 # p = p_1 * p_2 s.t. p_1 - 1 and p_2 -1 are smooth
 
 print separator
+
 print "We are generating the non-prime modulus as such:"
 print "p = p_1 * p_2"
 print "such that p_1 - 1 and p_2 -1 are both smooth"
-factors = gen2(2, 1024)
+print "this is important because the order of the group will be (p_1-1)*(p_2-1)"
+factors = gen_prime(2, 1024)
+
 print separator
+
 p_1 = factors[0]
 p_2 = factors[1]
 print "p_1 =", p_1
@@ -92,23 +62,31 @@ print "p_1 - 1 =", (p_1-1).factor()
 print "and"
 print "p_2 =", p_2
 print "p_2 - 1 =", (p_2-1).factor()
+
 print separator
+
 p = multiply_factors(factors)
 print "We now have our non-prime modulus p of size", len(bin(p)) - 2
 print p
+
 print separator
+
 print "The order of the group created should be (p_1-1)*(p_2-1)"
 print "which is smooth..."
 order_group = (p_1-1)*(p_2-1)
 print order_group
+
 print separator
+
 print "Let's verify that 2^order = 1 mod p"
 verif = power_mod(2, order_group, p)
 if verif != 1:
     print "Unfortunately not...", verif
     sys.exit(1)
 print "All good:", verif
+
 print separator
+
 raw_input("Press a key to continue...")
 
 #
@@ -146,6 +124,7 @@ def client(server, modulus, factors):
 
         # send generator to server
         print separator
+
         print "testing subgroup of order", order_subgroup
         print "with generator", g
 
@@ -166,6 +145,7 @@ def client(server, modulus, factors):
 
     # do CRT
     print separator
+
     print "We know have enough to apply CRT"
     private_key = CRT(hints, modulus, factors, order_group)
     return private_key
@@ -193,19 +173,27 @@ def dumb_discrete_log(public_key, generator, modulus):
         x += 1
         
 print separator
+
 print "We are doing a small subgroup attack to test our backdoor"
 print "We will send to our fake server a generator of each subgroup as public key"
 print "The server will reply with the generator raised to his private key"
 print "We then need to compute the discrete log with Pollard's rho algorithm on each subgroup"
+
 print separator
+
 raw_input("Press a key to continue...")
+
 print separator
 
 private_key = client(server, p, factors)
+
 print separator
+
 print "We found something!"
 print "private key found:", private_key
+
 print separator
+
 if private_key == real_private_key:
     print "It is indeed the server's private key!"
 else:
