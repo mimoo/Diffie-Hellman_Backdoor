@@ -69,6 +69,10 @@ from what we learned in implementing such a backdoor, we will see how we can rev
 
 A new order has been generated, but we know nothing about its order. This doesn't sound good and this section should explain why (from a backdoor point of view) and explain how we can try to reverse it...
 
+![unknown order](http://i.imgur.com/AKbKna3.png)
+
+The above shows that the new modulus was not generated as `p = 2q + 1`
+
 # Resources
 
 * [Thai Duong's blogpost](http://vnhacker.blogspot.com/2016/02/exploiting-diffie-hellman-bug-in-socat.html)
