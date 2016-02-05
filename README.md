@@ -1,4 +1,4 @@
-# The Socat backdoor
+# How to backdoor Diffie-Hellman, lessons learned from the Socat non-prime prime
 
 This repo contains some research I'm currently doing on the Socat backdoor.
 
