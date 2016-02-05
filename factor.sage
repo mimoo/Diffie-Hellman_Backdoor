@@ -11,9 +11,10 @@ def find_factors(number):
     for prime in Primes():
         if prime > number:
             break
-        if Mod(number, prime) == 0:
+        while Mod(number, prime) == 0:
             print prime, "divides the order"
             factors.append(prime)
+            number = number // prime
         if index == 10000:
             print "tested up to prime", prime, "so far"
             index = 0
