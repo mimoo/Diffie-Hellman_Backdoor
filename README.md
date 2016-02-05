@@ -71,7 +71,7 @@ A new order has been generated, but we know nothing about its order. This doesn'
 
 ![unknown order](http://i.imgur.com/AKbKna3.png)
 
-The above shows that the new modulus was not generated as `p = 2q + 1`
+The above shows that the new modulus was not generated as `p = 2q + 1` (a *Sophie Germain prime*, also known as safe prime).
 
 EDIT: But wait. Actually it was. When I do `/2` it converts the number to a rational whereas `is_prime` works on integers. It fails silently (which is a bad behavior). So the `q` is indeed "probably" a prime:
 
