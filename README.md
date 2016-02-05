@@ -87,3 +87,4 @@ The research stops here in this section.
 * [Thai Duong's blogpost](http://vnhacker.blogspot.com/2016/02/exploiting-diffie-hellman-bug-in-socat.html)
 * [crypto stackexchange's post](http://crypto.stackexchange.com/questions/32415/how-does-a-non-prime-modulus-for-diffie-hellman-allow-for-a-backdoor/32431?noredirect=1)
 * [reddit's thread](https://www.reddit.com/r/crypto/comments/43wh7h/the_socat_backdoor/)
+* [metzdowd's discussion](http://www.metzdowd.com/pipermail/cryptography/2016-February/028033.html)
