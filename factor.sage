@@ -3,8 +3,8 @@ import sys
 # sage verbose
 set_verbose(2)
 
-# dumb factorization
-def find_factors(number):
+# will take sqrt(n) divisions in the worst case
+def trial_division(number):
     factors = []
     # use different techniques to get primes, dunno which is faster
     index = 0
@@ -26,9 +26,9 @@ def find_factors(number):
 # read stdin
 number = int(sys.stdin.read())
 
-# different factorization
+# different factorization methods
 if sys.argv[1] == "dumb":
-    find_factors(number)
+    trial_division(number)
 elif sys.argv[1] == "sage":
     print factor(number, verbose=8)
 elif sys.argv[1] == "ecm":

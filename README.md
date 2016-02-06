@@ -63,7 +63,22 @@ To run it yourself you will need Sage. You can also use an online version of it 
 
 from what we learned in implementing such a backdoor, we will see how we can reverse it to use it ourselves.
 
-* What are the chances that if this was non-prime was a mistake, it generated factors large enough so that no one can reverse it?
+Trial division (testing every small primes up to a certain limit) has already found two small factors: 271 and 13,597.
+
+Q: What are the chances that if this was non-prime was a mistake, it generated factors large enough so that no one can reverse it?
+
+A: From Handbook of Applied Cryptography fact 3.7:
+
+> Let n be chosen **uniformly at random** form the interval [1, x]
+> (i) if 1/2 <= a <= 1, then the probability that the largest prime factor of n is <= x^a is approximately 1+ ln(a). Thus, for example, the probability than n has a prime factor > sqrt(x) is ln(2) ~= 0.69
+> (ii) The probability that the second-largest prime factor of n is <= x^{0.2117} is about 1/2
+> (iii) The expected total number of prime factors of n is ln ln x + O(1). (If n = mult(p_i^{e_i}), the total number of prime factors of n is sum(e_i).)
+
+let's replace x by (1 << 1024) - 1 = 179769313486231590772930519078902473361797697894230657273430081157732675805500963132708477322407536021120113879871393357658789768814416622492847430639474124377767893424865485276302219601246094119453082952085005768838150682342462881473913110540827237163350510684586298239947245938479716304835356329624224137215
+
+this gives us:
+
+
 
 # How to reverse socat's new prime dh2048_p's order
 
