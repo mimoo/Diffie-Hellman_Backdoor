@@ -116,30 +116,52 @@ In section 2, we will first discard some possible mistakes that the troublemaker
 
 \section{Human error}\label{mistake}
 
-Before shouting from the rooftops the words "backdoor", let's take a step back and imagine what could have gone wrong. First, it is possible that \href{http://repo.or.cz/socat.git/commitdiff/281d1bd6515c2f0f8984fc168fb3d3b91c20bdc0}{the poor man who suggested the change} (back then an \emph{Oracle} employee) had no idea that the DH modulus should be a prime. In fact, Diffie-Hellman works well enough with composite modulus (but keep in mind that it has its share of problems, and we will see later why). 
+Before shouting from the rooftops the words "backdoor", let's take a step back and imagine what could have gone wrong. First, it is possible that \href{http://repo.or.cz/socat.git/commitdiff/281d1bd6515c2f0f8984fc168fb3d3b91c20bdc0}{the poor man who suggested the change} (back then an \emph{Oracle} employee) had no idea that the DH modulus should be a prime. In fact, Diffie-Hellman works well enough with composite modulus (but keep in mind that it has its share of problems, and we will see later why).\\
 
 It might comes as a shock to the non-enlightened, but we usually do not take the time to generate real primes, or what we more generally call \textem{provable} primes. Efficient provable tests like ECPP or AKS \cite{ecpp} do exists, but the accuracy and the speed of \textem{probable} tests (tests that either tell you if a number is not a prime, or probably a prime) are good enough that any margin of error is negligible.
 
 Examples of probable tests are given in appendix C.3 of the  \href{http://csrc.nist.gov/publications/fips/fips186-3/fips_186-3.pdf}{FIPS 186 document}. Most implementations will use the \textem{Miller-Rabin} test with a variable amount of iteration according to the degree of certainty they want to achieve.
 
---
+For example in \href{https://www.openssl.org/docs/manmaster/crypto/BN_generate_prime.html}{Openssl's \mintinline{c}{BN_is_prime_fasttest_ex()} function}, the number of iteration is chosen such that the risk of yielding a false positive (a non-prime prime) is of at most $1/2^{80}$. To understand what this means in practice: it is as likely to happen as being hit by a meteorite while winning the Powerball. Here's a quote from the Structure and Interpretation of Computer Programs book \cite{sicp}:
 
-TALK ABOUT PROBABILITY TO FAIL THIS TEST
->  2^-80 (~10^24) is is about as likely as being hit by a meteorite (~10^-16)[1] at exactly the same moment you are learning that you won the Powerball (~10^-8). Alternatively, it is as likely as winning Powerball in three consecutive drawings.
+\begin{displayquote}
+Numbers that fool the Fermat test are called Carmichael numbers, and little is known about them other than that they are extremely rare. There are 255 Carmichael numbers below 100,000,000. The smallest few are 561, 1105, 1729, 2465, 2821, and 6601. In testing primality of very large numbers chosen at random, the chance of stumbling upon a value that fools the Fermat test is less than the chance that cosmic radiation cosmic radiation will cause the computer to make an error in carrying out a "correct" algorithm. Considering an algorithm to be inadequate for the first reason but not for the second illustrates the difference between mathematics and engineering.
+\end{displayquote}
 
---
+This is to say: the Oracle developer probably didn't intend to generate a prime. Now that we got that out of the way. Maybe something else along the chain happened?\\
 
-* Ways we verified that it could have been a mistake (little endian, blablabla)
+Throughout TLS \cite{tls12}, and in Socat's case throughout OpenSSL, the use of \emph{big endianness} is enforced for long numbers formatting. That is: you read a byte string from left to right to convert it to a number. This can make the process of converting from and to numbers a confusing task.
 
-> Multiple byte data
-   items are concatenations of bytes, from left to right, from top to
-   bottom.
-   ...
-> This byte ordering for multi-byte values is the commonplace network
-   byte order or big-endian format.
-   https://www.ietf.org/rfc/rfc5246.txt
+\begin{figure}[H]
+\begin{minted}[breaklines,frame=single]{c}
+static unsigned char dh1024_p[] = {
+   0xCC, 0x17, 0xF2, 0xDC, 0x96, 0xDF, 0x59, 0xA4, 0x46, 0xC5, 0x3E, 0x0E, 
+   0xB8, 0x26, 0x55, 0x0C, 0xE3, 0x88, 0xC1, 0xCE, 0xA7, 0xBC, 0xB3, 0xBF, 
+   0x16, 0x94, 0xD8, 0xA9, 0x45, 0xA2, 0xCE, 0xA9, 0x5B, 0x22, 0x25, 0x5F, 
+   0x92, 0x59, 0x94, 0x1C, 0x22, 0xBF, 0xCB, 0xC8, 0xC8, 0x57, 0xCB, 0xBF, 
+   0xBC, 0x0E, 0xE8, 0x40, 0xF9, 0x87, 0x03, 0xBF, 0x60, 0x9B, 0x08, 0xC6, 
+   0x8E, 0x99, 0xC6, 0x05, 0xFC, 0x00, 0xD6, 0x6D, 0x90, 0xA8, 0xF5, 0xF8, 
+   0xD3, 0x8D, 0x43, 0xC8, 0x8F, 0x7A, 0xBD, 0xBB, 0x28, 0xAC, 0x04, 0x69, 
+   0x4A, 0x0B, 0x86, 0x73, 0x37, 0xF0, 0x6D, 0x4F, 0x04, 0xF6, 0xF5, 0xAF, 
+   0xBF, 0xAB, 0x8E, 0xCE, 0x75, 0x53, 0x4D, 0x7F, 0x7D, 0x17, 0x78, 0x0E, 
+   0x12, 0x46, 0x4A, 0xAF, 0x95, 0x99, 0xEF, 0xBC, 0xA6, 0xC5, 0x41, 0x77, 
+   0x43, 0x7A, 0xB9, 0xEC, 0x8E, 0x07, 0x3C, 0x6D, 
+};
+\end{minted}
+\caption{Socat's 1024 bit DH non-prime prime}
+\label{fig:cert}
+\end{figure}
 
-* Ways the primality test could have been wrong -> show that you have more chance winning the superball blabla (check HN thread for that)
+Passed to OpenSSL, this big number is read from left to right as the long hexstring. Passed through a primality test this is indeed a composite number.
+
+\begin{minted}[breaklines]{python} CC17F2DC96DF59A446C53E0EB826550CE388C1CEA7BCB3BF1694D8A945A2CEA95B22255F9259941C22BFCBC8C857CBBFBC0EE840F98703BF609B08C68E99C605FC00D66D90A8F5F8D38D43C88F7ABDBB28AC04694A0B867337F06D4F04F6F5AFBFAB8ECE75534D7F7D17780E12464AAF9599EFBCA6C54177437AB9EC8E073C6D
+\end{minted}
+
+A natural question we could ask ourselve is that maybe the rogue commiter could have reversed the hexstring? Testing for that yielded a composite number as well.
+
+\begin{minted}[breaklines]{python}
+6D3C78EECB97A437741C5A6BCEF9995AF4A4612E78177D7F4D5375CE8EABBFAFF5F644F6DF0377386B4A694AC28BBBD7A8FC8438DD3F8F5A8906DD60FC5C6998EC689B60BF387F940E8EBCBFCB57C8C8CBBF221C9459925F25225BA9CEA245A9D89416BFB3BCA7CEC188E3C5526B8E3EC546A459DF96DCF217CC
+\end{minted}
 
 Let's think, before leaving this section, how a non-malicious, mistakenly, badly generated composite modulus, should be distributed (and we will later come back to this):
 
@@ -304,6 +326,10 @@ secure
 \bibitem{rfc2785} RFC 2785: \href{https://tools.ietf.org/html/rfc2785}{Methods for Avoiding the "Small-Subgroup" Attacks on the Diffie-Hellman Key Agreement Method for S/MIME}
 
 \bibitem{ecpp} Frank Li \href{http://theory.stanford.edu/~dfreeman/cs259c-f11/finalpapers/primalityproving.pdf}{An Overview of Elliptic Curve Primality Proving}
+
+\bibitem{sicp} Abelson, Sussman, Sussman \href{https://mitpress.mit.edu/sicp/chapter1/footnode.html#2413}{Structure and Interpretation of Computer Programs}
+
+\bibitem{tls12} RFC 5246: \href{https://www.ietf.org/rfc/rfc5246.txt}{The Transport Layer Security (TLS) Protocol Version 1.2}
 
 \end{thebibliography}
 
