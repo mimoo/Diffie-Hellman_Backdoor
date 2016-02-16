@@ -76,9 +76,9 @@
 
 \renewcommand{\abstractname}{Abstract}
 \begin{abstract}
-abstract.\\
+A few months after Juniper's infamous and subtle vulnerability at the end of 2015, A similar fine tuning happened in an open source tool called Socat. Juniper's cryptographic vulnerability was found to have birthed from the change of a simple number later identified as a Dual EC parameter (NSA's backdoored Pseudo-Random Number Generator). Socat's own change of number happened to be in its implementation of the Diffie-Hellman key exchange. This paper aims to introduce the point of view of a malicious commiter who would want to introduce a Nobody-But-Us backdoor in the later public key cryptosystem he has access to.\\
 \\
-\textbf{Keywords:} Socat, backdoor, diffie-hellman, factorization, small subgroup attack, Pohlig-Hellman, Pollard's p-1, ECM\\
+\textbf{Keywords:} Juniper, Socat, NOBUS, backdoor, Dual EC, Diffie-Hellman, Small subgroup attack, Pohlig-Hellman, Factorization, Pollard's p-1 algorithm, ECM\\
 
 \end{abstract}
 
@@ -112,17 +112,31 @@ there exist documentation on how to secure diffie-hellman (rfc rfc rfc) Interest
 
 \section{Human error}\label{mistake}
 
+Before shouting from the rooftops the words "backdoor", let's take a step back and imagine what could have gone wrong. First, it is possible that \href{http://repo.or.cz/socat.git/commitdiff/281d1bd6515c2f0f8984fc168fb3d3b91c20bdc0}{the poor man who suggested the change} (back then an \emph{Oracle} employee) had no idea that the DH modulus should be a prime. In fact, Diffie-Hellman works well enough with composite modulus (but keep in mind that it has its share of problems, and we will see later why). 
+
 How likely was it a mistake?
 
--> explain how we usually generate prime
--> how we test for prime
+-> explain how we usually generate prime (briefly)
+
+-> how we test for prime (briefly)
     - probable
     - provable
     ( maybe from here: https://www.ietf.org/rfc/rfc2631.txt )
 
-* Ways we verified that it could have been a mistake
+* Ways we verified that it could have been a mistake (little endian, blablabla)
 
 * Ways the primality test could have been wrong -> show that you have more chance winning the superball blabla (check HN thread for that)
+
+Let's think, before leaving this section, how a non-malicious, mistakenly, badly generated composite modulus, should be distributed (and we will later come back to this):
+
+From Handbook of Applied Cryptography fact 3.7:
+
+    Let n be chosen uniformly at random form the interval 1, x if 1/2 <= a <= 1, then the probability that the largest prime factor of n is <= x^a is approximately 1+ ln(a). Thus, for example, the probability than n has a prime factor > sqrt(x) is ln(2) ~= 0.69 (ii) The probability that the second-largest prime factor of n is <= x^{0.2117} is about 1/2 (iii) The expected total number of prime factors of n is ln ln x + O(1). (If n = mult(p_i^{e_i}), the total number of prime factors of n is sum(e_i).)
+
+So, let's think with numbers:
+
+APPLICATION OF CALCULUS FOR OUR SIZE OF MODULUS
+
 
 -- note --
 
@@ -239,11 +253,15 @@ secure
 
 \section{How to secure a DH implementation}
 
-- if the p = 2q + 1 is not done like that, there is a RFC that tells you how to secure such DH
+- if the p = 2q + 1 is not done like that, there is a RFC that tells you how to secure such DH (safe prime, or is it Sophie Germaine prime? Or strong prime?)
 
 - openssl dhparam
 
 - also some people believe generation of prime is too difficult and that it shouldn't be possible (rfc with predefined dh groups). But then weakdh (or was it logjam rather), everybody used the same hardcoded dh prime, everybody could have/got owned
+
+- verification of public key (but there is a patent on that? According to the diffie-hellman RFC)
+
+- generation of safe prime
 
 \section{Conclusion}
 
