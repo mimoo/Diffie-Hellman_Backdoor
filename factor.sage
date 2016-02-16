@@ -26,11 +26,16 @@ def trial_division(number):
 # read stdin
 number = int(sys.stdin.read())
 
+print "INPUT NUMBER:", number
+
 # different factorization methods
 if sys.argv[1] == "dumb":
+    print "ALGORITHM: in-house Trial Division"
     trial_division(number)
 elif sys.argv[1] == "sage":
+    print "ALGORITHM: Sage factoring algorithm"
     print factor(number, verbose=8)
 elif sys.argv[1] == "ecm":
+    print "ALGORITHM: INRIA's ECM"
     from sage.libs.libecm import ecmfactor
-    print ecmfactor(number, 0.00, verbose=True)
+    print ecmfactor(number, 1000000000, verbose=True)
