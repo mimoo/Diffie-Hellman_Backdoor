@@ -116,19 +116,7 @@ In section 2, we will first discard some possible mistakes that the troublemaker
 
 \section{Human error}\label{mistake}
 
-Before shouting from the rooftops the words "backdoor", let's take a step back and imagine what could have gone wrong. First, it is possible that \href{http://repo.or.cz/socat.git/commitdiff/281d1bd6515c2f0f8984fc168fb3d3b91c20bdc0}{the poor man who suggested the change} (back then an \emph{Oracle} employee) had no idea that the DH modulus should be a prime. In fact, Diffie-Hellman works well enough with composite modulus (but keep in mind that it has its share of problems, and we will see later why).\\
-
-It might comes as a shock to the non-enlightened, but we usually do not take the time to generate real primes, or what we more generally call \textem{provable} primes. Efficient provable tests like ECPP or AKS \cite{ecpp} do exists, but the accuracy and the speed of \textem{probable} tests (tests that either tell you if a number is not a prime, or probably a prime) are good enough that any margin of error is negligible.
-
-Examples of probable tests are given in appendix C.3 of the  \href{http://csrc.nist.gov/publications/fips/fips186-3/fips_186-3.pdf}{FIPS 186 document}. Most implementations will use the \textem{Miller-Rabin} test with a variable amount of iteration according to the degree of certainty they want to achieve.
-
-For example in \href{https://www.openssl.org/docs/manmaster/crypto/BN_generate_prime.html}{Openssl's \mintinline{c}{BN_is_prime_fasttest_ex()} function}, the number of iteration is chosen such that the risk of yielding a false positive (a non-prime prime) is of at most $1/2^{80}$. To understand what this means in practice: it is as likely to happen as being hit by a meteorite while winning the Powerball. Here's a quote from the Structure and Interpretation of Computer Programs book \cite{sicp}:
-
-\begin{displayquote}
-Numbers that fool the Fermat test are called Carmichael numbers, and little is known about them other than that they are extremely rare. There are 255 Carmichael numbers below 100,000,000. The smallest few are 561, 1105, 1729, 2465, 2821, and 6601. In testing primality of very large numbers chosen at random, the chance of stumbling upon a value that fools the Fermat test is less than the chance that cosmic radiation cosmic radiation will cause the computer to make an error in carrying out a "correct" algorithm. Considering an algorithm to be inadequate for the first reason but not for the second illustrates the difference between mathematics and engineering.
-\end{displayquote}
-
-This is to say: the Oracle developer probably didn't intend to generate a prime. Now that we got that out of the way. Maybe something else along the chain happened?\\
+Before shouting from the rooftops the words "backdoor", let's take a step back and imagine what could have gone wrong. First, it is possible that \href{http://repo.or.cz/socat.git/commitdiff/281d1bd6515c2f0f8984fc168fb3d3b91c20bdc0}{the poor man who suggested the change} (back then an \emph{Oracle} employee) had no idea that the DH modulus should be a prime. In fact, Diffie-Hellman works well enough with composite modulus (but keep in mind that it has its share of problems, and we will see later why). Also, what if he did generated a prime but got lost afterwards?\\
 
 Throughout TLS \cite{tls12}, and in Socat's case throughout OpenSSL, the use of \emph{big endianness} is enforced for long numbers formatting. That is: you read a byte string from left to right to convert it to a number. This can make the process of converting from and to numbers a confusing task.
 
@@ -154,57 +142,126 @@ static unsigned char dh1024_p[] = {
 
 Passed to OpenSSL, this big number is read from left to right as the long hexstring. Passed through a primality test this is indeed a composite number.
 
-\begin{minted}[breaklines]{python} CC17F2DC96DF59A446C53E0EB826550CE388C1CEA7BCB3BF1694D8A945A2CEA95B22255F9259941C22BFCBC8C857CBBFBC0EE840F98703BF609B08C68E99C605FC00D66D90A8F5F8D38D43C88F7ABDBB28AC04694A0B867337F06D4F04F6F5AFBFAB8ECE75534D7F7D17780E12464AAF9599EFBCA6C54177437AB9EC8E073C6D
-\end{minted}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{prime1.png}
+\end{figure}
 
-A natural question we could ask ourselve is that maybe the rogue commiter could have reversed the hexstring? Testing for that yielded a composite number as well.
+A natural question we could ask ourselves is that maybe the rogue commiter could have reversed the hexstring? Testing for that yielded a composite number as well.
 
-\begin{minted}[breaklines]{python}
-6D3C78EECB97A437741C5A6BCEF9995AF4A4612E78177D7F4D5375CE8EABBFAFF5F644F6DF0377386B4A694AC28BBBD7A8FC8438DD3F8F5A8906DD60FC5C6998EC689B60BF387F940E8EBCBFCB57C8C8CBBF221C9459925F25225BA9CEA245A9D89416BFB3BCA7CEC188E3C5526B8E3EC546A459DF96DCF217CC
-\end{minted}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{prime2.png}
+\end{figure}
 
-Let's think, before leaving this section, how a non-malicious, mistakenly, badly generated composite modulus, should be distributed (and we will later come back to this):
+What if everything was reversed? Even inside the byte
 
-From Handbook of Applied Cryptography fact 3.7:
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{prime3.png}
+\end{figure}
 
-    Let n be chosen uniformly at random form the interval 1, x if 1/2 <= a <= 1, then the probability that the largest prime factor of n is <= x^a is approximately 1+ ln(a). Thus, for example, the probability than n has a prime factor > sqrt(x) is ln(2) ~= 0.69 (ii) The probability that the second-largest prime factor of n is <= x^{0.2117} is about 1/2 (iii) The expected total number of prime factors of n is ln ln x + O(1). (If n = mult(p_i^{e_i}), the total number of prime factors of n is sum(e_i).)
+Another one, is that maybe the prime number was too long and thus truncated to 1024 bit (since the program was asking for a 1024 bit number). Indeed, the following number is a prime:
 
-So, let's think with numbers:
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{prime4.png}
+\end{figure}
 
-APPLICATION OF CALCULUS FOR OUR SIZE OF MODULUS
+It might comes as a shock to the non-enlightened, but we usually do not take the time to generate real primes, or what we more generally call \emph{provable} primes. Efficient provable tests like ECPP or AKS \cite{ecpp} do exists, but the accuracy and the speed of \emph{probable} tests (tests that either tell you if a number is not a prime, or probably a prime) are good enough that any margin of error is negligible.
 
+Examples of probable tests are given in appendix C.3 of the  \href{http://csrc.nist.gov/publications/fips/fips186-3/fips_186-3.pdf}{FIPS 186 document}. Most implementations will use the \emph{Miller-Rabin} test with a variable amount of iteration according to the degree of certainty they want to achieve.
 
--- note --
+For example in \href{https://www.openssl.org/docs/manmaster/crypto/BN_generate_prime.html}{Openssl's \mintinline{c}{BN_is_prime_fasttest_ex()} function}, the number of iteration is chosen such that the risk of yielding a false positive (a non-prime prime) is of at most $1/2^{80}$. To understand what this means in practice: it is as likely to happen as being hit by a meteorite while winning the Powerball. Here's a quote from the Structure and Interpretation of Computer Programs book \cite{sicp}:
 
-from hn:
+\begin{displayquote}
+Numbers that fool the Fermat test are called Carmichael numbers, and little is known about them other than that they are extremely rare. There are 255 Carmichael numbers below 100,000,000. The smallest few are 561, 1105, 1729, 2465, 2821, and 6601. In testing primality of very large numbers chosen at random, the chance of stumbling upon a value that fools the Fermat test is less than the chance that cosmic radiation cosmic radiation will cause the computer to make an error in carrying out a "correct" algorithm. Considering an algorithm to be inadequate for the first reason but not for the second illustrates the difference between mathematics and engineering.
+\end{displayquote}
 
+This is to say: the Oracle developer probably didn't intend to generate a prime.
 
-a) knew it was non-prime, and used it to weaken the crypto
+\section{Reasons for a prime modulus}
 
-b) knew it was non-prime, and used it because they didn't think it needed to be prime (which is a massive sin of ignorance)
-
-c) grabbed 1024 bits of rand() and didn't check if it was prime (again, stupid)
-
-d) grabbed some rand and checked the prime-ness using a bad method
-
-e) used a "prime number generator" that produced bad output
-
-
-\section{A prime modulus}
-
-while DH can work on any kind of subgroup, the security of composite modulus subgroup are usually not as high as their prime counterparts. The primary reasons are smalls subgroup attack and Pohlig Hellman.
-
-But first, prime or not prime, let's see one problem: what happens if the order of the group created has a "smooth" order (we will see it doesn't have to be smooth per se)
+while DH can work in any kind of integer group, there are subtle reasons behind the choice of a prime group. But prime or not prime, if the modulus is not chosen correctly, this can lead to the fact that the order of the multiplicative group is "smooth" (we will see it doesn't have to be smooth per se)
 
 Def. Smooth:
 
-\subsection{CRT}
+If the order is smooth, two attacks on DH are then possible.
 
-CRT is a magic cryptanalyis tool. Like lattices for smaller values than the normal, SAT, GNFS, ...
+We'll see that:
 
-graph to explain how it works
+\subsection{The Chinese Remainder Theorem}
+
+Along LLL, SAT solvers, GNFS and Pollard's Rho, the \emph{Chinese Remainder Theorem} (CRT) is one of the magic tool of a cryptanalyst.
+
+This tool sometimes used for the good (RSA-CRT\footnote{ Shinde, Fadewar \href{http://www.techscience.com/doi/10.3970/icces.2008.005.255.pdf}{Faster RSA Algorithm for Decryption Using Chinese
+Remainder Theorem}}\cite{fasterRSA} is a construction where CRT is used to speed up RSA decryption) is also often used for the bad. But first let's see how it works:
+
+\begin{theorem}
+Suppose $m = \prod^{k} m_i$ with $m_1, \cdots, n_k$ pairwise co-prime.\\
+
+For any $(a_1, \cdots, a_k)$ there exists a $x$ such that:\\
+
+\begin{cases}
+x= a_1 \pmod{m_1}\\
+\vdots\\
+x= a_k \pmod{m_k}\\
+\end{cases}\\
+
+And there exist a unique solution for $x \pmod{m}$
+\end{theorem}
+
+There is a simple proof to that theorem which we will use to later reconstruct a $x \pmod{m}$ in the attack (note that I called the modulus $m$ so that you don't get any ideas that we will later use CRT with a DH modulus). Here goes the proof:
+
+\begin{proof}
+\begin{equation*}
+x = \sum^{k} a_i * (\prod^{j \neq i} m_j (m_j^{-1} \pmod{m_i}))  \pmod{m}
+\end{equation*}
+\end{proof}\\
+
+At first, it might be kind of hard to grasp where that formula is coming from. But let me explain by starting with only two equations. Keep in mind that we want to find the value of $x$ modulo $m = m_1 m_2$
+
+\[
+\begin{rcases}
+x = a_1 \pmod{m_1}\\
+x = a_2 \pmod{m_2}
+\end{rcases}
+\implies x = \text{ ?} \pmod{m}
+\]\\
+
+How can we start building the value of $x$?
+\begin{multline}
+\begin{aligned}
+&\text{If } x = a_1  m_2\pmod{m} \text{,}\\
+&\text{then }
+\begin{cases}
+x = \boldsymbol{a_1} m_2 \pmod{m_1}\\
+x = \boldsymbol{0} \pmod{m_2}\\
+\end{cases}\\
+\end{aligned}
+\end{multline}
+
+Quite not what we want, but we are getting there. Let's add to it:
+\begin{multline}
+\begin{aligned}
+&\text{If } x = a_1  m_2  (m_2^{-1} \pmod{m_1}) \pmod{m}\\
+&\text{then } \begin{cases}
+x = a_1 m_2 (m_2^{-1} \pmod{m_1}) = \boldsymbol{a_1} \pmod{m_1}\\
+x = 0 \pmod{m_2}\\
+\end{cases}\\
+&\text{with } $m_2{-1} \pmod{m_1}$ \text{the inverse of} $m_2$ \text{modulo} $m_1$\text{.}
+\end{aligned}
+\end{multline}
+
+That's almost what we want! Half of what we want actually. We just need to do the same thing for the other side of the equation, and we have:
+
+\[ x = a_1 m_2 (m_2^{-1} \pmod{m_1}) + a_2 m_1 (m_1^{-1} \pmod{m_2}) \pmod{m} \]
+
+Now you should understand better how we came with that big formula in the proof.
 
 \subsection{Small subgroup attacks}
+
+What if we could use the CRT to attack DH?
 
 http://citeseerx.ist.psu.edu/viewdoc/download?rep=rep1&type=pdf&doi=10.1.1.44.5296
 
@@ -257,7 +314,7 @@ creating a backdoor method 1: p = p_1 p_2 where p_i - 1 smooth
 
 \subsection{trial division}
 
-we found 271 and...
+we found 271 and 13,597
 
 \subsection{pollard p-1}
 
@@ -281,13 +338,36 @@ on our proof of concet: RESULT
 
 on socat's dh1024_p: RESULT
 
-\section{Testing the security of the new modulus}
+\section{Estimations}
 
-it was done p = 2q + 1 with q prime
+How does a non-malicious, mistakenly, badly generated composite modulus, should be distributed (and we will later come back to this):
 
-secure
+From \href{http://cacr.uwaterloo.ca/hac/about/chap3.pdf}{Handbook of Applied Cryptography fact 3.7}:
 
-\section{How to secure a DH implementation}
+\begin{definition}
+    Let $n$ be chosen uniformly at random form the interval $[1, x]$.
+    \begin{enumerate}
+        \item if $1/2 \leq \alpha \leq 1$, then the probability that the largest prime factor of $n$ is $\leq x^{\alpha}$ is approximately $1+ ln(\alpha)$. Thus, for example, the probability than $n$ has a prime factor $> \sqrt(x)$ is $ln(2) \approx 0.69$
+        \item The probability that the second-largest prime factor of $n$ is $\leq x^{0.2117}$ is about $1/2$. 
+        \item The expected total number of prime factors of $n$ is $ln ln x + \mathcal{O}(1)$. (If $n = \prod p_i^{e_i}$, the total number of prime factors of n is $\sum e_i$.)
+    \end{enumerate} 
+\end{definition}
+
+And since it might be easier to visualize this with numbers:
+
+\begin{enumerate}
+    \item socat's 1024 bit composite modulus $n$ probability to have a prime factor greater than 512 bits is $\approx 0.69$.
+    \item the probability that the second-largest prime factor of $n$ is smaller than 217 bits is $1/2$.
+    \item The total number of prime factor of $n$ is expected to be $7$.
+\end{enumerate}
+
+
+we ran ECM and pollard p-1 on two machines [descript of machine] with no results
+
+\section{The new modulus and how to secure a DH implementation}
+
+new modulus=it was done p = 2q + 1 with q prime
+
 
 - if the p = 2q + 1 is not done like that, there is a RFC that tells you how to secure such DH (safe prime, or is it Sophie Germaine prime? Or strong prime?)
 
@@ -298,6 +378,7 @@ secure
 - verification of public key (but there is a patent on that? According to the diffie-hellman RFC)
 
 - generation of safe prime
+
 
 \section{Conclusion}
 
@@ -330,6 +411,9 @@ secure
 \bibitem{sicp} Abelson, Sussman, Sussman \href{https://mitpress.mit.edu/sicp/chapter1/footnode.html#2413}{Structure and Interpretation of Computer Programs}
 
 \bibitem{tls12} RFC 5246: \href{https://www.ietf.org/rfc/rfc5246.txt}{The Transport Layer Security (TLS) Protocol Version 1.2}
+
+\bibitem{fasterRSA} Shinde, Fadewar \href{http://www.techscience.com/doi/10.3970/icces.2008.005.255.pdf}{Faster RSA Algorithm for Decryption Using Chinese
+Remainder Theorem}
 
 \end{thebibliography}
 
