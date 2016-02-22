@@ -168,7 +168,7 @@ Another one, is that maybe the prime number was too long and thus truncated to 1
 \includegraphics[width=\textwidth]{prime4.png}
 \end{figure}
 
-It might comes as a shock to the non-enlightened, but we usually do not take the time to generate real primes, or what we more generally call \emph{provable} primes. Efficient provable tests like ECPP or AKS \cite{ecpp} do exists, but the accuracy and the speed of \emph{probable} tests (tests that either tell you if a number is not a prime, or probably a prime) are good enough that any margin of error is negligible.
+It might comes as a shock to the non-enlightened, but we usually do not take the time to generate real primes, or what we more generally call \emph{provable} primes. Efficient provable tests like ECPP or AKS \cite{ecpp} do exists, but the accuracy and the speed of \emph{probable} tests (tests that either tell you if a number is probably a prime, or definitely not a prime) are good enough that any margin of error is negligible.
 
 Examples of probable tests are given in appendix C.3 of the  \href{http://csrc.nist.gov/publications/fips/fips186-3/fips_186-3.pdf}{FIPS 186 document}. Most implementations will use the \emph{Miller-Rabin} test with a variable amount of iteration according to the degree of certainty they want to achieve.
 
@@ -180,19 +180,15 @@ Numbers that fool the Fermat test are called Carmichael numbers, and little is k
 
 This is to say: the Oracle developer probably didn't intend to generate a prime.
 
-\section{Reasons for a prime modulus}
+\section{Attacks on Diffie-Hellman}
 
-while DH can work in any kind of integer group, there are subtle reasons behind the choice of a prime group. But prime or not prime, if the modulus is not chosen correctly, this can lead to the fact that the order of the multiplicative group is "smooth" (we will see it doesn't have to be smooth per se)
+Diffie-Hellman has two unfamous related attacks, \emph{Pohlig-Hellman} and \emph{Small subgroups attacks}, that work well when the modulus is \emph{weak}. That is: the group it creates has an composite order whose factor are too small. while DH can work in any kind of integer group, there are methods to make it more secure, for example by choosing a \emph{safe prime} as the modulus.
 
-Def. Smooth:
-
-If the order is smooth, two attacks on DH are then possible.
-
-We'll see that:
+A safe prime $p$ is a special prime of the form $p = 2q + 1$ where $q$ is prime\footnote{the prime $q$ is called a \emph{Sophie Germain prime} in this case}. This allows the order of the group it creates to be $p - 1 = 2q$, which main factor is big enough for the following attacks not to work.
 
 \subsection{The Chinese Remainder Theorem}
 
-Along LLL, SAT solvers, GNFS and Pollard's Rho, the \emph{Chinese Remainder Theorem} (CRT) is one of the magic tool of a cryptanalyst.
+Along LLL, SAT solvers, the General Number Field Sieve, Pollard's Rho and the Euclidian algorithm, the \emph{Chinese Remainder Theorem} (CRT) is one of the magic tool of a cryptanalyst.
 
 This tool sometimes used for the good (RSA-CRT\footnote{ Shinde, Fadewar \href{http://www.techscience.com/doi/10.3970/icces.2008.005.255.pdf}{Faster RSA Algorithm for Decryption Using Chinese
 Remainder Theorem}}\cite{fasterRSA} is a construction where CRT is used to speed up RSA decryption) is also often used for the bad. But first let's see how it works:
@@ -253,25 +249,48 @@ x = 0 \pmod{m_2}\\
 \end{aligned}
 \end{multline}
 
-That's almost what we want! Half of what we want actually. We just need to do the same thing for the other side of the equation, and we have:
+That's almost what we want! Half of what we want actually. We just need to do the same thing for the other side of the equation, and we have:\\
 
-\[ x = a_1 m_2 (m_2^{-1} \pmod{m_1}) + a_2 m_1 (m_1^{-1} \pmod{m_2}) \pmod{m} \]
+\begin{tikzpicture}[scale=.55]
+% main formula
+\node (main) {$x = a_1 m_2 (m_2^{-1} \pmod{m_1}) + a_2 m_1 (m_1^{-1} \pmod{m_2}) \pmod{m}$};
+% other formulas
+\node (formula1) [below left=.5cm and -4.5cm of main, align=left] {$= a_1 m_2 (m_2^{-1} \pmod{m_1}) \pmod{m_1}$\\$= a_1 \pmod{m_1}$};
+\node (formula2) [below right=.5cm and -4.5cm of main, align=left] {$= a_2 m_1 (m_1^{-1} \pmod{m_2}) \pmod{m_2}$\\$= a_2 \pmod{m_2}$};
+% arrows
+\draw [->, shorten <=3pt, shorten >=3pt] (main) -- (formula1);
+\draw [->, shorten <=3pt, shorten >=3pt] (main) -- (formula2);
+\end{tikzpicture}
 
-Now you should understand better how we came with that big formula in the proof.
-
-\subsection{Small subgroup attacks}
-
-What if we could use the CRT to attack DH?
-
-http://citeseerx.ist.psu.edu/viewdoc/download?rep=rep1&type=pdf&doi=10.1.1.44.5296
-
-(d'un autre lien)> The small subgroup attack was first pointed out by Vanstone[26]; see also van Oorschot and Wiener [36], Anderson and Vaudenay [1], and Lim and Lee [22].
-
-if the order is a composite of small subgroups
-
-why not getting the discrete log in different subgroup and recombine it with CRT? That sounds easier that getting the discrete log in the whole group
+Everything works as we wanted! Now you should understand better how we came up with that general formula in the proof.
 
 \subsection{Pohlig Hellman}
+
+Now what if we could use the Chinese Remainder Theorem to attack Diffie-Hellman? One way to attack Diffie-Hellman is to compute the discrete-logarithm $x_i$ of both peer's public keys $y_i = g^{x_i}$ modulo the modulus $n$. 
+
+\begin{theorem}
+little fermat
+\end{theorem}
+
+The discrete logarithm is 
+
+\begin{theorem}
+lagrange
+\end{theorem}
+
+This tells us that the order of our group might have subgroups of orders the factors of the main group's order. 
+
+In the case of the modulus being a prime $p$, the order of the main group is $p-1$. We can then factor $p-1$ to guess what possible subgroups there are (there are two with orders $2$ and $q$ if the modulus $p$ is a safe prime).
+
+In the case of the modulus being a composite $n = \prod p_i^k_i$, the order of the main group is $\prod p_i^{k_i - 1}(p_i - 1)$. To take a guess at the subgroups we first need to factor the modulus $n$.
+
+\begin{theorem}
+Let $n$ be a composite integer. The discrete logarithm problem in $\mathbb{Z}^*_n$ polytime reduces to the combination of the integer factorization problem and the discrete logarithm problem in $\mathbb{Z}^*_p$ for each prime factor $p$ of $n$.
+\end{theorem}
+
+
+
+THEOREM LAGRANGE? subgroup divides group
 
 > Static Diffie-Hellman keys are vulnerable to a small subgroup attack
 
@@ -283,7 +302,27 @@ same idea, but instead we will just use one public key and reduce it to differen
 
 note: in theory we can't reduce if we're in a smaller group, we can't "escape", we can only go in small subgroups
 
+note2: running time of pollard's rho is approximately $\mathbb{O}(\sqrt{n})$ => running time of Pohlig Hellman in total is $\mathbb{O}(\sqrt{p})$ where $p$ is the largest prime factor of $n$.
+
+
+\subsection{Small subgroup attacks}
+
+* There exist an easier way than Pohlig Hellman, instead of computing the thing we just send the right generator right away
+* but it doesn't work in dhe
+* most people use dhe, not dh
+
+http://citeseerx.ist.psu.edu/viewdoc/download?rep=rep1&type=pdf&doi=10.1.1.44.5296
+
+(d'un autre lien)> The small subgroup attack was first pointed out by Vanstone[26]; see also van Oorschot and Wiener [36], Anderson and Vaudenay [1], and Lim and Lee [22].
+
+if the order is a composite of small subgroups
+
+why not getting the discrete log in different subgroup and recombine it with CRT? That sounds easier that getting the discrete log in the whole group
+
+
 \section{How to implement a backdoor in DH}
+
+\subsection{Nobody But Us}
 
 we could use what we saw previously as such:
 
@@ -295,10 +334,7 @@ It is believed by some that the NSA is a bit more classy than that and would cre
 
 A good way of doing that is to use a non-prime modulus, this way the order would be $\phi(n)$ which is not p-1 anymore (give the formula)
 
-fact: (the one from handbook of applied crypto)
-the dlog in Z_n)* reduces to the combination of factorization of n and dlog in Z_p)* for each p factor of n
-
-so people who would want to reverse the backdoor would first have to factor n to guess the order.
+From the theorem Polhig Helman (ref) this would put a barrier of entry to the backdoor: if you are not the one who generated the backdoor values, you would first have to factor the modulus in order to compute the order in order to perform the Pohlig Hellman attack.
 
 \section{Methods to create a backdoor} title)}
 
@@ -340,6 +376,59 @@ on socat's dh1024_p: RESULT
 
 \section{Estimations}
 
+\subsection{Past records of factorization}
+
+list of integer factorization: http://www.loria.fr/~zimmerma/records/factor.html
+list of ECM factorization: http://www.loria.fr/~zimmerma/records/top50.html
+
+> 73-digit prime found in 2010 by J. Bos, T. Kleinjung, A. Lenstra and P. Montgomery.
+ 
+http://homes.cerias.purdue.edu/~ssw/cun/press/tech.html
+>  On August 2, 2012, Wagstaff found the 75-digit factor
+336842026814486816413712532665671525518487238461533945786937785048474675329
+of 11304+1.
+> Ten days later, on August 12, 2012, he found the 79-digit factor
+2302872188505279576573535015926441913945044975483579529517513795897664211127797
+of 11306+1. 
+
+http://mersenneforum.org/showpost.php?p=352425&postcount=5
+http://mersenneforum.org/showpost.php?p=352452&postcount=11
+> late 2013, Ryan Propper reported using GMP-ECM 6.4.3 + GMP 5.1.0 to find a 274-bit factor from the 787-bit composite (7337+1)/8/101020140256422276570987002251440602782290400709 product of two unknown primes, on a commodity CPU using less than 6GB of RAM. He further reports that was a 10-day effort on Stanford's University cluster, and the factorization was found after 5000 curves.
+
+http://crypto.stackexchange.com/questions/15823/multiple-prime-rsa-how-many-primes-can-i-use-for-a-2048-bit-modulus
+> odds of finding that factorization so fast where 1/400; "this was quite the lucky find" is an understatement
+
+\subsection{Past records of discrete logarithm in prime group}
+
+> The discrete logarithm problem is considered to be computationally intractable. That is, no efficient classical algorithm is known for computing discrete logarithms in general.
+
+so we can't dlog anything like that. We need some small subgroups
+
+https://en.wikipedia.org/wiki/Discrete_logarithm_records
+
+> On 18 June 2005, Antoine Joux and Reynald Lercier announced the computation of a discrete logarithm modulo a 130-digit (431-bit) strong prime in three weeks, using a 1.15 GHz 16-processor HP AlphaServer GS1280 computer and a number field sieve algorithm.
+
+> On 5 February 2007 this was superseded by the announcement by Thorsten Kleinjung of the computation of a discrete logarithm modulo a 160-digit (530-bit) safe prime, again using the number field sieve. Most of the computation was done using idle time on various PCs and on a parallel computing cluster.
+
+> On 11 June 2014, Cyril Bouvier, Pierrick Gaudry, Laurent Imbert, Hamza Jeljeli and Emmanuel Thomé announced the computation of a discrete logarithm modulo a 180 digit (596-bit) safe prime using the number field sieve algorithm.
+
+\section{The new modulus and how to secure a DH implementation}
+
+new modulus=it was done p = 2q + 1 with q prime
+
+
+- if the p = 2q + 1 is not done like that, there is a RFC that tells you how to secure such DH (safe prime, or is it Sophie Germaine prime? Or strong prime?)
+
+- openssl dhparam
+
+- also some people believe generation of prime is too difficult and that it shouldn't be possible (rfc with predefined dh groups). But then weakdh (or was it logjam rather), everybody used the same hardcoded dh prime, everybody could have/got owned
+
+- verification of public key (but there is a patent on that? According to the diffie-hellman RFC)
+
+- generation of safe prime
+
+\subsection{Uniform Distribution}
+
 How does a non-malicious, mistakenly, badly generated composite modulus, should be distributed (and we will later come back to this):
 
 From \href{http://cacr.uwaterloo.ca/hac/about/chap3.pdf}{Handbook of Applied Cryptography fact 3.7}:
@@ -362,23 +451,31 @@ And since it might be easier to visualize this with numbers:
 \end{enumerate}
 
 
+\subsection{Our results}
+
+CONCLUSION: we shouldn't be able to find anything if the distribution is uniform
+
+CONCLUSION: from theorem in Pohlig Hellman that DH -> factorization+DLOG:
+* we need hard factorization
+* we need easy dlog
+^ to make the backdoor working
+
+CONCLUSION: 
+* if the groups are small enough we can find them and discrete log is easy (not  NOBUS backdoor)
+* if the groups are too big we can't find them but discrete log can't be computed (not a backdoor)
+* if the groups are in range(X, Y) we can't find them, and only a big player can compute the DLOG (NSA) which makes sense (NOBUS backdoor)
+
+TODO:
+* we will only optimize p-1 for the first case (not NOBUS backdoor)
+* same for ECM
+
 we ran ECM and pollard p-1 on two machines [descript of machine] with no results
+the number we are trying to find is a 302 digits composite (C302)
 
-\section{The new modulus and how to secure a DH implementation}
-
-new modulus=it was done p = 2q + 1 with q prime
-
-
-- if the p = 2q + 1 is not done like that, there is a RFC that tells you how to secure such DH (safe prime, or is it Sophie Germaine prime? Or strong prime?)
-
-- openssl dhparam
-
-- also some people believe generation of prime is too difficult and that it shouldn't be possible (rfc with predefined dh groups). But then weakdh (or was it logjam rather), everybody used the same hardcoded dh prime, everybody could have/got owned
-
-- verification of public key (but there is a patent on that? According to the diffie-hellman RFC)
-
-- generation of safe prime
-
+CONCLUSION:
+1) if we find something => might not be a NOBUS?
+2) if we don't find anything => might be NOBUS, might just be uniform distrib
+hard to conclude... revise this
 
 \section{Conclusion}
 
@@ -386,7 +483,7 @@ new modulus=it was done p = 2q + 1 with q prime
 - easy to backdoor
 - is it really a backdoor? Since we can't factor it... maybe not (maybe give estimations to factor it, and to use the backdoor if it is indeed a backdoor with such big factors)
 - people need to verify open source
-
+- people are going away from DHE and to ECDHE ( https://weakdh.org/sysadmin.html )
 \newpage
 
 \section*{Acknowledgements}
