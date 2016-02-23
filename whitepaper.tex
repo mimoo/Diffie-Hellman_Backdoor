@@ -211,7 +211,7 @@ There is a simple proof to that theorem which we will use to later reconstruct a
 
 \begin{proof}
 \begin{equation*}
-x = \sum^{k} a_i * (\prod^{j \neq i} m_j (m_j^{-1} \pmod{m_i}))  \pmod{m}
+x = \sum^{k} a_i * (\prod_{j \neq i} m_j (m_j^{-1} \pmod{m_i}))  \pmod{m}
 \end{equation*}
 \end{proof}\\
 
@@ -266,31 +266,52 @@ Everything works as we wanted! Now you should understand better how we came up w
 
 \subsection{Pohlig Hellman}
 
-Now what if we could use the Chinese Remainder Theorem to attack Diffie-Hellman? One way to attack Diffie-Hellman is to compute the discrete-logarithm $x_i$ of both peer's public keys $y_i = g^{x_i}$ modulo the modulus $n$. 
+Now what if we could use the Chinese Remainder Theorem to attack Diffie-Hellman? That must what have been thinking Stephen Pohlig and Martin Hellman when they designed their algorithm.\\
+
+One way of attacking Diffie-Hellman is to compute the discrete-logarithm $x$ of one of the peer's public keys $y = g^{x}$ modulo the modulus $n$ (here both $g$ and $n$ are fixed parameters). Let's take a closer look at the private exponent $x$. Euler's Totient Theorem states that:
 
 \begin{theorem}
-little fermat
+If $n$ and $g$ are coprime positive integers, then
+\[ g^{\varphi(n)} = 1 \pmod{n} \]
 \end{theorem}
 
-The discrete logarithm is 
+This tells us that the private exponent $x$ can be written modulo $\varphi(n) = \prod p_i^{k_i}$, the order of the group.\\
 
-\begin{theorem}
-lagrange
-\end{theorem}
-
-This tells us that the order of our group might have subgroups of orders the factors of the main group's order. 
-
-In the case of the modulus being a prime $p$, the order of the main group is $p-1$. We can then factor $p-1$ to guess what possible subgroups there are (there are two with orders $2$ and $q$ if the modulus $p$ is a safe prime).
-
-In the case of the modulus being a composite $n = \prod p_i^k_i$, the order of the main group is $\prod p_i^{k_i - 1}(p_i - 1)$. To take a guess at the subgroups we first need to factor the modulus $n$.
+So what if we could reduce the problem of finding $x \pmod{\varphi(n)}$ by finding $x \pmod{p_i^{k_i}$ for each $i$ and then easily retrieving it modulo $\varphi(n)$ with our new CRT tool? In fact a theorem says it is possible:
 
 \begin{theorem}
 Let $n$ be a composite integer. The discrete logarithm problem in $\mathbb{Z}^*_n$ polytime reduces to the combination of the integer factorization problem and the discrete logarithm problem in $\mathbb{Z}^*_p$ for each prime factor $p$ of $n$.
 \end{theorem}
 
+And the proof of the theorem is our attack: Pohlig Hellman. It goes as follow:
 
+\begin{enumerate}
+    \item Determine the prime factorization of the order of the group
+        $$\varphi(n) = \prod p_i^{k_i} $$
+    \item Determine the value of $x$ modulo $p_i^{k_i}$ for each $i$
+    \item Recompute $x \pmod{\varphi(n)}$ with the Chinese Remainder Theorem
+\end{enumerate}
 
-THEOREM LAGRANGE? subgroup divides group
+The main idea of Pohlig-Hellman's method is in how do we determine the value of $x$ modulo each $p_i^{k_i}$. One way of doing it is to try to reduce our public key to the subgroup we're looking at by computing:
+
+$$y^{\varphi(n)/p_i^{k_i}} \pmod{n}$$
+
+Computing the discrete logarithm of that value, we get $x \pmod{p_i^{k_i}}$. This works because of the following observation:
+$$ x = x_1 + p_i^{k_i} x_2 $$
+
+\begin{align*}
+    y^{\frac{\varphi(n)}{p_i^{k_i}}} &= (g^{x})^{\frac{\varphi(n)}{p_i^{k_i}}} \pmod{n}\\
+    &= g^{\frac{(x) \varphi(n)}{p_i^{k_i}}} \pmod{n}\\
+    &= g^{\frac{(x_1 + p_i^{k_i} x_2) \varphi(n)}{p_i^{k_i}}} \pmod{n}\\
+    &= g^{\frac{x_1 \varphi(n)}{p_i^{k_i}}} g^{x_2 \varphi(n)} \pmod{n}\\
+    &= g^{\frac{x_1 \varphi(n)}{p_i^{k_i}}} \pmod{n}\\
+\end{align*}
+
+note: in theory we can't reduce if we're in a smaller group, we can't "escape", we can only go in small subgroups
+
+note2: running time of pollard's rho is approximately $\mathbb{O}(\sqrt{n})$ => running time of Pohlig Hellman in total is $\mathbb{O}(\sqrt{p})$ where $p$ is the largest prime factor of $n$.
+
+\subsection{Small subgroup attacks}
 
 > Static Diffie-Hellman keys are vulnerable to a small subgroup attack
 
@@ -298,14 +319,7 @@ The previous attack is "impractical" because DH is usually used as DHE (ephemera
 
 Pohlig Hellman is a passive attack, and spying on only one conversation allows you to decrypt the rest
 
-same idea, but instead we will just use one public key and reduce it to different subgroups with a magic operation
-
-note: in theory we can't reduce if we're in a smaller group, we can't "escape", we can only go in small subgroups
-
-note2: running time of pollard's rho is approximately $\mathbb{O}(\sqrt{n})$ => running time of Pohlig Hellman in total is $\mathbb{O}(\sqrt{p})$ where $p$ is the largest prime factor of $n$.
-
-
-\subsection{Small subgroup attacks}
+---
 
 * There exist an easier way than Pohlig Hellman, instead of computing the thing we just send the right generator right away
 * but it doesn't work in dhe
@@ -332,7 +346,7 @@ But then anyone is able to get the order of the group (p-1) and can then factor 
 
 It is believed by some that the NSA is a bit more classy than that and would create what we call "Nobody But Us" types of backdoor. That is nobody can reverse them. This was the case of Dual EC (although Dual EC suffered from slowness and bit biases even without the backdoor)
 
-A good way of doing that is to use a non-prime modulus, this way the order would be $\phi(n)$ which is not p-1 anymore (give the formula)
+A good way of doing that is to use a non-prime modulus, this way the order would be $\varphi(n)$ which is not p-1 anymore (give the formula)
 
 From the theorem Polhig Helman (ref) this would put a barrier of entry to the backdoor: if you are not the one who generated the backdoor values, you would first have to factor the modulus in order to compute the order in order to perform the Pohlig Hellman attack.
 
@@ -469,8 +483,15 @@ TODO:
 * we will only optimize p-1 for the first case (not NOBUS backdoor)
 * same for ECM
 
+from mersennewiki:
+> ECM on 70-digit factors is almost impossible with current hardware
+
 we ran ECM and pollard p-1 on two machines [descript of machine] with no results
 the number we are trying to find is a 302 digits composite (C302)
+
+271 and 13597 was found after trial division
+
+we tested if the generator $g=2$ was confined to one of the subgroup of order 270 or 13596: nope. (g^270 mod n != 1)
 
 CONCLUSION:
 1) if we find something => might not be a NOBUS?

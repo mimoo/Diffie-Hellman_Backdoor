@@ -1,6 +1,10 @@
 # How to backdoor Diffie-Hellman, lessons learned from the Socat non-prime prime
 
-This repo contains some research I'm currently doing on the Socat backdoor.
+* This repo contains some research I'm currently doing on the Socat backdoor.
+
+* [github/test_DHparams](https://github.com/mimoo/test_DHparams) contains a tool to check your Diffie-Hellman parameters (is the modulus long enough? Is it a safe prime? ...)
+
+## Socat? What?
 
 On February 1st 2016, a security advisory was posted to Openwall by a [Socat](http://www.dest-unreach.org/socat/) developer: [Socat security advisory 7 - Created new 2048bit DH modulus](http://www.openwall.com/lists/oss-security/2016/02/01/4)
 
@@ -14,42 +18,36 @@ This is a pretty weird message with a [Juniper](http://forums.juniper.net/t5/Sec
 
 Looking at the commit logs you can see that they used a 512 bits Diffie-Hellman modulus until last year (2015) january when [it was replaced with a 1024 bits one](http://repo.or.cz/socat.git/commitdiff/281d1bd6515c2f0f8984fc168fb3d3b91c20bdc0).
 
-> Socat did not work in FIPS mode because 1024 instead of 512 bit DH prime is required. Thanks to **Zhigang Wang** for reporting and sending a patch.
+> Socat did not work in FIPS mode because 1024 instead of 512 bit DH prime is required. Thanks to Zhigang Wang for reporting and sending a patch.
 
-The person who pushed the commit is *Gerhard Rieger* who is the same person who fixed it a year later. In the comment he refers to *Zhigang Wang*, an Oracle employee at the time who has yet to comment on his mistake.
+The person who pushed the commit is *Gerhard Rieger* who is the same person who fixed it a year later. In the comment he refers to an Oracle employee at the time who has yet to comment on his mistake.
 
-This research tries to understand how this could be a backdoor. And more particularly, a [NOBUS](https://en.wikipedia.org/wiki/NOBUS) one (*Nobody But Us*). Here are the objectives of this research:
+This research's goal is to understand how this could possibly be a backdoor. And more particularly, a [Nobody-but-us](https://en.wikipedia.org/wiki/NOBUS) one (*NOBUS*). Here are the objectives of this research:
 
-* Build a proof of concept of such a NOBUS backdoor
-* In failures of building NOBUS backdoors, check if I can use the socat backdoor
-* Try to answer: "does it look like a backdoor?"
+* Build a  [proof of concept](PoC.sage) of such a NOBUS backdoor
+* check if we can reverse the socat backdoor to use it ourselve
+* Try to answer the question: "does it look like a backdoor?"
 
 # Human errors
 
 How likely is it a human error?
 
-* I've tried reversing the prime to see if the developer made a mistake, but nothing.
+* I've tried reversing the hex array representation of the modulus to see if the developer made a mistake, but nothing.
 
 ![reversed dh](http://i.imgur.com/L0VxosD.png)
 
-* [Someone proposed](https://www.reddit.com/r/crypto/comments/43wh7h/the_socat_backdoor/czlxydf) "Swap each 4-byte section or 8-byte section as though someone messed up endian conversion." I haven't tried that yet.
-
-# Pohlig Hellman and small subgroup attacks
-
-I won't write an explanation of these attacks here, but they are the reason why a non-prime modulus could be a NOBUS backdoor.
-
-If a backdoor allowing such attacks was generated with a prime modulus, then anyone could reveal the order (by computing `modulus - 1`) and see if it is smooth by simply factoring it (and then take advantage of the backdoor).
+* [Someone proposed](https://www.reddit.com/r/crypto/comments/43wh7h/the_socat_backdoor/czlxydf) something weird that I didn't understand. If someone wants to help me here.
 
 # How to implement a NOBUS DH
 
-There is a working proof of concept in PoC.sage that implements one way of doing it (I expect more ways to generate backdoored primes)
+There is a working proof of concept in [PoC.sage](PoC.sage) that implements one way of doing it (I expect more ways to generate backdoored modulus).
 
 It creates a non-prime modulus `p = p_1 * p_2` with `p_i` primes, such that
-`p_i - 1` is smooth. Since the order of the group will be `(p_1 - 1)(p_2 - 1)` (smooth) and known only to the malicious person who generated `p`, Pohlig-Hellman can be used to recover the private key
+`p_i - 1` are smooth. Since the order of the group will be `(p_1 - 1)(p_2 - 1)` (smooth) and known only to the malicious person who generated `p`, *Pohlig-Hellman* (passive) or a *Small Subgroup Confinment attack* (active) can be used to recover the private key.
 
-In the proof of concept the small subgroup attack is implemented instead of Pohlig-Hellman just because it seemed easier to code. They are relatively equivalent except that in practice an ephemeral key is used and such small subgroup attacks are not that practical.
+In the proof of concept the small subgroup attack is implemented instead of Pohlig-Hellman just because it seemed easier to code. They are relatively equivalent except that in practice an ephemeral key is used which makes small subgroup attacks not practical.
 
-Note that these issues should not arrise if the DH parameters were generated properly, that is the order and subgroups orders should be known (and used to verify that the public key received lies in the correct subgroup). See [rfc2785](https://tools.ietf.org/html/rfc2785) for more information.
+Note that these issues should not arrise if the DH parameters were generated properly, that is the order and subgroups orders should be known. If the prime is a safe prime, you don't need to do anything. If it is not, it might be that the order of the group (`p-1`) is smooth, this is a bad idea but nonetheless you can verify that the public key received lies in the correct subgroup by raising it to the power of the subgroup. See [rfc2785](https://tools.ietf.org/html/rfc2785) for more information.
 
 ![proof of concept](http://i.imgur.com/CL2wk5V.png)
 
@@ -59,7 +57,7 @@ The proof of concept is a step by step explanation of what's happening. Above yo
 
 To run it yourself you will need Sage. You can also use an online version of it a [cloud.sagemath.com](http://cloud.sagemath.com).
 
-# How to reverse socat's non-prime dh1024_p
+## How to reverse socat's non-prime dh1024_p
 
 from what we learned in implementing such a backdoor, we will see how we can reverse it to use it ourselves.
 
@@ -70,32 +68,25 @@ Q: What are the chances that if this was non-prime was a mistake, it generated f
 A: From Handbook of Applied Cryptography fact 3.7:
 
 > Let n be chosen **uniformly at random** form the interval [1, x]
-> (i) if 1/2 <= a <= 1, then the probability that the largest prime factor of n is <= x^a is approximately 1+ ln(a). Thus, for example, the probability than n has a prime factor > sqrt(x) is ln(2) ~= 0.69
-> (ii) The probability that the second-largest prime factor of n is <= x^{0.2117} is about 1/2
-> (iii) The expected total number of prime factors of n is ln ln x + O(1). (If n = mult(p_i^{e_i}), the total number of prime factors of n is sum(e_i).)
+> 1. if 1/2 <= a <= 1, then the probability that the largest prime factor of n is <= x^a is approximately 1+ ln(a). Thus, for example, the probability than n has a prime factor > sqrt(x) is ln(2) ~= 0.69
+> 2. The probability that the second-largest prime factor of n is <= x^{0.2117} is about 1/2
+> 3. The expected total number of prime factors of n is ln ln x + O(1). (If n = mult(p_i^{e_i}), the total number of prime factors of n is sum(e_i).)
 
-let's replace x by (1 << 1024) - 1 = 179769313486231590772930519078902473361797697894230657273430081157732675805500963132708477322407536021120113879871393357658789768814416622492847430639474124377767893424865485276302219601246094119453082952085005768838150682342462881473913110540827237163350510684586298239947245938479716304835356329624224137215
+This means three things:
 
-this gives us:
+1. item socat's 1024 bit composite modulus `n` probability to have a prime factor greater than 512 bits is ~0.69.
+2. the probability that the second-largest prime factor of `n` is smaller than 217 bits is 1/2.
+3. The total number of prime factor of `n` is expected to be 7 (we already have 2).
 
+217 bits is already too large a factor to find according to [ECM and p-1 records](http://www.loria.fr/~zimmerma/records/top50.html) (of 83 digits 3 years ago). Whereas even a discretelog modulo a 217 bits modulus is easy according to the [DLOG records](https://en.wikipedia.org/wiki/Discrete_logarithm_records) (of 596 bits 2 years ago)
 
+# What about socat's new prime dh2048_p's order
 
-# How to reverse socat's new prime dh2048_p's order
+A new order has been generated, but we know nothing about its order.
 
-A new order has been generated, but we know nothing about its order. This doesn't sound good and this section should explain why (from a backdoor point of view) and explain how we can try to reverse it...
+Checking it with [test_DHparams](https://github.com/mimoo/test_DHparams) we confirm that it is a safe prime.
 
-![unknown order](http://i.imgur.com/AKbKna3.png)
-
-The above shows that the new modulus was not generated as `p = 2q + 1` (a *Sophie Germain prime*, also known as safe prime).
-
-EDIT: But wait. Actually it was. When I do `/2` it converts the number to a rational whereas `is_prime` works on integers. It fails silently (which is a bad behavior). So the `q` is indeed "probably" a prime:
-
-```python
-proof.arithmetic(False)
-is_prime(q) #-> True
-```
-
-The research stops here in this section.
+![checking diffie hellman modulus](https://www.cryptologie.net/upload/Screen_Shot_2016-02-22_at_10.28_.42_PM_.png)
 
 # Resources
 
