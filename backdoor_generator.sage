@@ -24,18 +24,59 @@ class cc:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-# multiply every element of a list together
-def multiply_factors(factors):
-    p = 1
-    for factor in factors:
-        p *= factor
-    return p
+# Produce a generator for a group modulo a prime
+def produce_generator(modulus, order, subgroups, g=2):
+    # we want g s.t. g^{order/subgroup_order} != 1 for all subgroups
+    is_generator = False
+    while not is_generator:
+        is_generator = True
+        for subgroup in subgroups:
+            if int(power_mod(g, order//subgroup, modulus)) == 1:
+                g = randint(2, modulus - 1)
+                is_generator = False
+                break
+    return g
 
+# Produce good enough for a group modulo a prime
+def produce_good_enough_generator(modulus, order, subgroups, g=2):
+    # we want g s.t. g^{order/subgroup_order} != 1 for all subgroups
+    is_generator = False
+    while not is_generator:
+        is_generator = True
+        for subgroup in subgroups:
+            if int(power_mod(g, subgroup, modulus)) == 1:
+                g = randint(2, modulus - 1)
+                is_generator = False
+                break
+    return g
+
+# Produce a generator of a target subgroup for any kind of group
+def produce_bad_generator(modulus, target, g=2):
+    while int(power_mod(g, target, modulus)) != 1:
+        g = randint(2, modulus - 1)
+    return g
+            
 ################################################################# 
 # Methods
 ################################################################# 
 
-def method1(modulus_size, number_of_factors, smooth_size):
+def method1(modulus_size, factors_size):
+    """
+    # Description
+    * This method creates a prime modulus p
+    * p-1 factors are small enough for DLOG
+    * p-1 factors are big enough to avoid factorization
+
+    # How to use the backdoor
+    * You should be able to do a DLOG modulo a factors_size prime
+
+    # NOBUS?
+    * Nobody should be able to find a factor of size factors_size
+    """
+    print "this is not a good idea"
+    return True
+
+def method2(modulus_size, number_of_factors, smooth_size):
     """
     # Description
     * This method creates a modulus n = p_1 * ... * p_{number_of_factors}
@@ -91,17 +132,21 @@ def method1(modulus_size, number_of_factors, smooth_size):
         print "Method 1 crashed"
         sys.exit(1)
 
+    # find a generator
+    g = produce_good_enough_generator(modulus, order_group, subgroups_list)
+
     # print
     print "modulus   =", modulus
     print "bitlength =", len(bin(modulus)) - 2
     print "factors   =", p_i
+    print "generator =", g
     print "subgroups =", subgroups_list
     print "# be sure to test if you can do a DLOG modulo", subgroups_list[1]
 
     #
-    return modulus, subgroups_list, p_i
+    return modulus, subgroups_list, p_i, g
 
-def method2(modulus_size, number_of_factors, smooth_size, B2_size):
+def method3(modulus_size, number_of_factors, smooth_size, B2_size):
     """
     # Description
     * This is the same method as method 1 above, except:
@@ -160,20 +205,23 @@ def method2(modulus_size, number_of_factors, smooth_size, B2_size):
         print "Method 1 crashed"
         sys.exit(1)
 
+    # find a generator
+    g = produce_good_enough_generator(modulus, order_group, subgroups_list)
+
     # print
     print "modulus   =", modulus
     print "bitlength =", len(bin(modulus)) - 2
     print "factors   =", p_i
     print "subgroups =", subgroups_list
+    print "generator =", g
     print "# be sure to test if you can do a DLOG modulo", subgroups_list[-1]
 
     #
-    return modulus, subgroups_list, p_i
+    return modulus, subgroups_list, p_i, g
 
-def method3(modulus_size=1024, factors_size=256):
+def method4(modulus_size=1024, factors_size=256):
     """
     # Description
-    * This is the best NOBUS I could achieve,
     * n = \prod p_i with each p_i the same large size and
     p_i - 1 = 2q_i with q_i prime (so p_i - 1 are not smooth)
     
@@ -185,22 +233,69 @@ def method3(modulus_size=1024, factors_size=256):
 
     # NOBUS?
     * Since none of the p_i - 1 are smooth, Pollard's p-1 would not yield anything
-    * Even ECM would be un-doable
-    * On the other hand, you need to be able to do large dlogs
+    * But 256bits factors are "easy" to find
+    * You also have "not easy" DLOG to do
     """
 
     number_of_factors = modulus_size // factors_size
-    return method1(modulus_size, number_of_factors, factors_size)
+    return method2(modulus_size, number_of_factors, factors_size)
 
-    
+def method5(modulus_size, generator_order):
+    """
+    # Description
+    * n = pq and p-1 has large factors except for a small one that will
+    be our generator's subgroup
+    """
+    # generation of the 2 primes p and q s.t. p-1 has one small factor
+    prime_size = modulus_size // 2
+
+    # q should be have few factors (not smooth) if we pick it randomly
+    q = random_prime(1<<(prime_size+1), lbound=1<<(prime_size-3))
+
+    # p
+    large_factor = prime_size - generator_order
+
+    p = 0
+    while not is_prime(p):
+        p_1 = random_prime(1<<(generator_order+1), lbound=1<<(generator_order-3))
+        p_2 = random_prime(1<<(large_factor+1), lbound=1<<(large_factor-3))
+        p = 2*p_1*p_2 + 1
+    # 
+
+    # compute the modulus
+    modulus = p * q
+
+    # verify the order of the group
+    order_group = (p-1) * (q-1)
+    if power_mod(2, order_group, modulus) != 1:
+        print "Method 1 crashed"
+        sys.exit(1)
+
+    # find a generator of the small subgroup
+    g = produce_bad_generator(modulus, p_1)
+
+    # print
+    print "modulus   =", modulus
+    print "bitlength =", len(bin(modulus)) - 2
+    print "factors   =", p, " * ", q
+    print "subgroup  =", p_1
+    print "generator =", g
+    print "# be sure to test if you can do a DLOG modulo", subgroups_list[-1]
+
+    #
+    return modulus, subgroups_list, p_i, g
+
+def method6():
+    return True
     
 ################################################################# 
 # Main menu
 ################################################################# 
 
-menu = ["modulus = pq with p-1 and q-1 smooth",
+menu = ["modulus p is prime, p-1 have 'small' factors",
+        "modulus = pq with p-1 and q-1 smooth",
         "same as above but partially smooth",
-        "method3",
+        "modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1",
         ]
 
 def main():
@@ -220,13 +315,45 @@ def main():
     # run method
     if choice == 1:
         print "# using method 1.", menu[0]
-        method1(1024, 2, 32)
+        """
+        compute a prime modulus p where p-1 has small factors
+        small enough to do the dlog, but large enough to avoid factorization
+        (this is not really possible)
+        """
+        method1(1024, 256)
+
     if choice == 2:
         print "# using method 2.", menu[1]
-        method2(1024, 2, 32, 64)
+        """
+        We use it to compute n = pq with p-1 and q-1 32bits-smooth
+        dlog in 32 bits is relatively easy (?)
+        factoring n is easy with Pollard's p - 1
+        """
+        method2(1024, 2, 32)
     if choice == 3:
         print "# using method 3.", menu[2]
-        method3()
+        """
+        As above, we generate n = pq with p-1 and q-1 32bits-smooth
+        except! for one factor that is ~64bits
+        dlog should be possible in 64 bits
+        factoring n with Pollard's p-1 will have to catch that 64bits with B2
+        """
+        method3(1024, 2, 32, 64)
+    if choice == 4:
+        print "# using method 4.", menu[3]
+        """
+        We compute n = p1*p2*p3*p4 with each p_i the same large size and
+        p_i - 1 = 2q_i with q_i prime (so p_i - 1 are not smooth)
+        This is not a very good way, because easily factorable
+        """
+        method4()
+    if choice == 5:
+        print "# using method 5.", menu[4]
+        """
+        We compute n = pq where p-1 has "one" (or few) small factor
+        """
+        method5()
+
 
 if __name__ == "__main__":
     main()

@@ -67,6 +67,8 @@ from what we learned in implementing such a backdoor, we will see how we can rev
 
 Trial division (testing every small primes up to a certain limit) has already found two small factors: 271 and 13,597. The last factor is still a composite of 1002 bits (302  digits) that we'll call C302 (C for Composite).
 
+I tested if the generator (2) has order 271 or 13,597 or 271*13,597. But no.
+
 Q: What are the chances that if this was non-prime was a mistake, it generated factors large enough so that no one can reverse it?
 
 A: From Handbook of Applied Cryptography fact 3.7:
