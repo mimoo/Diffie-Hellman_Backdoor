@@ -35,15 +35,22 @@ def multiply_factors(factors):
 
 def method1(modulus_size, number_of_factors, smooth_size):
     """
+    # Description
     This method creates a modulus n = p_1 * ... * p_{number_of_factors}
     with each p_i - 1 smooth, that is, each p_i - 1 = q_1 * ... * q_{something} 
     `something` is calculated according to `smooth_size`:
     each q_i is of size ~ `smooth_size`
 
+    # How to use the backdoor
     To use this backdoor you need to keep track of each q_i
 
     Pohlig-Hellman will have to do the DLOG modulo every q_i
     To verify that the `smooth_size` is low enough: try to compute a DLOG on a q_i
+
+    # NOBUS?
+    Since both p-1 and q-1 are smooth, 
+    it's highly possible that Pollard's p-1 factorization algorithm could
+    relatively easily retrieve p and q
     """
 
     # generation of the X primes p_i s.t. p_i - 1 smooth
@@ -82,13 +89,14 @@ def method1(modulus_size, number_of_factors, smooth_size):
         sys.exit(1)
 
     # print
-    print "* modulus   =", modulus
-    print "* bitlength =", len(bin(modulus)) - 2
-    print "* subgroups =", subgroups_list
-    print "* be sure to test if you can do a DLOG modulo", subgroups_list[1]
+    print cc.OKBLUE + "modulus   =" + cc.END, modulus
+    print cc.OKBLUE + "bitlength =" + cc.END, len(bin(modulus)) - 2
+    print cc.OKBLUE + "modulus   =" + cc.END, p_i
+    print cc.OKBLUE + "subgroups =" + cc.END, subgroups_list
+    print cc.WARNING + "be sure to test if you can do a DLOG modulo", subgroups_list[1], cc.END
 
     #
-    return modulus, subgroups_list
+    return modulus, subgroups_list, p_i
 
 
 ################################################################# 
@@ -98,9 +106,9 @@ def method1(modulus_size, number_of_factors, smooth_size):
 def main():
     # display menu
     sys.stderr.write("\x1b[2J\x1b[H")
-    print cc.HEADER + "# List of method " + cc.END
-    print "1. method"
-    print "2. method"
+    print cc.HEADER + "# Choose a method from:" + cc.END
+    print "1. modulus = pq with p-1 and q-1 smooth"
+    print "2. same as above but partially smooth"
 
     # prompt
     choice = int(raw_input(cc.OKGREEN + "# Enter a digit:\n" + cc.END))
@@ -110,7 +118,7 @@ def main():
     if choice == 1:
         method1(1024, 2, 32)
     if choice == 2:
-        return True
+        method1(1024, 2, 32)
 
 if __name__ == "__main__":
     main()
