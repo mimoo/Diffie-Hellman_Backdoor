@@ -38,21 +38,19 @@ def multiply_factors(factors):
 def method1(modulus_size, number_of_factors, smooth_size):
     """
     # Description
-    This method creates a modulus n = p_1 * ... * p_{number_of_factors}
+    * This method creates a modulus n = p_1 * ... * p_{number_of_factors}
     with each p_i - 1 smooth, that is, each p_i - 1 = q_1 * ... * q_{something} 
-    `something` is calculated according to `smooth_size`:
+    * `something` is calculated according to `smooth_size`:
     each q_i is of size ~ `smooth_size`
 
     # How to use the backdoor
-    To use this backdoor you need to keep track of each q_i
-
-    Pohlig-Hellman will have to do the DLOG modulo every q_i
-    To verify that the `smooth_size` is low enough: try to compute a DLOG on a q_i
+    * To use this backdoor you need to keep track of each q_i
+    * Pohlig-Hellman will have to do the DLOG modulo every q_i
+    * To verify that the `smooth_size` is low enough: try to compute a DLOG on a q_i
 
     # NOBUS?
-    Since each p_i-1 are smooth, 
-    it's highly possible that Pollard's p-1 factorization algorithm could
-    relatively factor the modulus
+    * Since each p_i-1 are smooth, i's highly possible that
+    Pollard's p-1 factorization algorithm could factor the modulus
     """
 
     # checks
@@ -96,7 +94,7 @@ def method1(modulus_size, number_of_factors, smooth_size):
     # print
     print "modulus   =", modulus
     print "bitlength =", len(bin(modulus)) - 2
-    print "modulus   =", p_i
+    print "factors   =", p_i
     print "subgroups =", subgroups_list
     print "# be sure to test if you can do a DLOG modulo", subgroups_list[1]
 
@@ -106,20 +104,19 @@ def method1(modulus_size, number_of_factors, smooth_size):
 def method2(modulus_size, number_of_factors, smooth_size, B2_size):
     """
     # Description
-    This is the same method as method 1 above, except:
+    * This is the same method as method 1 above, except:
     one q_i (we'll call it q_B2) of each p_i-1 is big.
-    This makes the p_i-1 "partially" smooth
+    * This makes the p_i-1 "partially" smooth
 
     # How to use the backdoor
-    To use this backdoor you need to keep track of each q_i
-
-    Pohlig-Hellman will have to do the DLOG modulo every q_i
-    To verify that the `B2_size` is low enough: try to compute a DLOG on a q_B2
+    * To use this backdoor you need to keep track of each q_i
+    * Pohlig-Hellman will have to do the DLOG modulo every q_i
+    * To verify that the `B2_size` is low enough: try to compute a DLOG on a q_B2
 
     # NOBUS?
-    Since both p-1 and q-1 have a large  factor, 
-    Pollard's p-1 would need a B2 bound too large to work efficiently.
-    But if the
+    * Since both p-1 and q-1 have a large factor, 
+    * Pollard's p-1 would need a B2 bound too large to work efficiently.
+    * ECM could still work if the large factor is not large enough
     """
 
     # B2 should be > smooth_size
@@ -166,21 +163,44 @@ def method2(modulus_size, number_of_factors, smooth_size, B2_size):
     # print
     print "modulus   =", modulus
     print "bitlength =", len(bin(modulus)) - 2
-    print "modulus   =", p_i
+    print "factors   =", p_i
     print "subgroups =", subgroups_list
     print "# be sure to test if you can do a DLOG modulo", subgroups_list[-1]
 
     #
     return modulus, subgroups_list, p_i
 
+def method3(modulus_size=1024, factors_size=256):
+    """
+    # Description
+    * This is the best NOBUS I could achieve,
+    * n = \prod p_i with each p_i the same large size and
+    p_i - 1 = 2q_i with q_i prime (so p_i - 1 are not smooth)
+    
+    # How to use the backdoor
+    * To use this backdoor you need to keep track of each p_i
+    * Pohlig-Hellman will have to do the DLOG modulo each p_i - 1
+    * This is a large modulus, for a 1024 bits dh modulus the dlogs will
+    have to be done modulus 256 bits prime
 
+    # NOBUS?
+    * Since none of the p_i - 1 are smooth, Pollard's p-1 would not yield anything
+    * Even ECM would be un-doable
+    * On the other hand, you need to be able to do large dlogs
+    """
 
+    number_of_factors = modulus_size // factors_size
+    return method1(modulus_size, number_of_factors, factors_size)
+
+    
+    
 ################################################################# 
 # Main menu
 ################################################################# 
 
 menu = ["modulus = pq with p-1 and q-1 smooth",
         "same as above but partially smooth",
+        "method3",
         ]
 
 def main():
@@ -199,11 +219,14 @@ def main():
 
     # run method
     if choice == 1:
-        print "# using method 1." + menu[0]
+        print "# using method 1.", menu[0]
         method1(1024, 2, 32)
     if choice == 2:
-        print "# using method 2." + menu[1]
+        print "# using method 2.", menu[1]
         method2(1024, 2, 32, 64)
+    if choice == 3:
+        print "# using method 3.", menu[2]
+        method3()
 
 if __name__ == "__main__":
     main()
