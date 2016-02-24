@@ -44,7 +44,9 @@ How likely is it a human error?
 
 # How to implement a NOBUS DH
 
-There is a working proof of concept in [PoC.sage](PoC.sage) that implements one way of doing it (I expect more ways to generate backdoored modulus).
+There seem to be different ways, with different consequences, to do that. [backdoor_generator.sage](backdoor_generator.sage) allows you to generate backdoored DH parameters according to these different techniques, the explanations are in the source as well.
+
+There is a working proof of concept in [PoC.sage](PoC.sage) that implements one way of doing it: 
 
 It creates a non-prime modulus `p = p_1 * p_2` with `p_i` primes, such that
 `p_i - 1` are smooth. Since the order of the group will be `(p_1 - 1)(p_2 - 1)` (smooth) and known only to the malicious person who generated `p`, *Pohlig-Hellman* (passive) or a *Small Subgroup Confinment attack* (active) can be used to recover the private key.
