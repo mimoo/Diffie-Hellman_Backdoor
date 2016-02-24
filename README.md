@@ -88,9 +88,7 @@ This means three things:
 
 # What about socat's new prime dh2048_p's order
 
-A new order has been generated, but we know nothing about its order.
-
-Checking it with [test_DHparams](https://github.com/mimoo/test_DHparams) we confirm that it is a safe prime.
+A new order has been generated, but we know nothing about its order: checking it with [test_DHparams](https://github.com/mimoo/test_DHparams) we confirm that it is a safe prime (`2q + 1`) so its order is implicit (`2q`).
 
 ![checking diffie hellman modulus](https://www.cryptologie.net/upload/Screen_Shot_2016-02-22_at_10.28_.42_PM_.png)
 
