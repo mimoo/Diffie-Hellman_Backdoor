@@ -71,9 +71,23 @@ To run it yourself you will need Sage. You can also use an online version of it 
 
 from what we learned in implementing such a backdoor, we will see how we can reverse it to use it ourselves.
 
-Trial division (testing every small primes up to a certain limit) has already found two small factors: 271 and 13,597. The last factor is still a composite of 1002 bits (302  digits) that we'll call C302 (C for Composite).
+**Trial division** (testing every small primes up to a certain limit) has already found two small factors: 271 and 13,597. The last factor is still a composite of 1002 bits (302  digits) that we'll call C302 (C for Composite).
 
-I tested if the generator (2) has order 271 or 13,597 or 271*13,597. But no.
+I tested if the generator (2) has order 271-1 or 13,597-1 or (271-1)*(13,597-1). But no.
+
+**Pollard's p-1** factorization algorithm should work fine for finding factors `p` if `p-1` is smooth.
+
+[The records people have reached with this algorithm](http://www.loria.fr/~zimmerma/records/Pminus1.html) is to factor a ~200bits composite which largest factor was a 50bits and other factors under 30bits (with B1=10^9 and B2 =10^15).
+
+But an attacker could have easily chosen factors of `p-1` and `q-1` to be of size > 50bits which would have canceled any possibility of Pollard's p-1 to factor `p` or `q`. He could have also added two 60 bits factors to void the B2 bound as well.
+
+Another very good algorithm at factoring is [ECM](https://en.wikipedia.org/wiki/Lenstra_elliptic_curve_factorization) that only depends on the size of the smallest factor.
+
+[The records](http://www.loria.fr/~zimmerma/records/top50.html) found factors of size 276bits. This is again a problem if the backdoored modulus is composed of two 512bits primes.
+
+[The Quadratic Sieve](https://en.wikipedia.org/wiki/Quadratic_sieve) algorithm running-time depends on the modulus's size, best for numbers under 400-500bits, and so is out of reach for our big 1024bits modulus.
+
+Finally the [GNFS](https://en.wikipedia.org/wiki/General_number_field_sieve) algorithm, which works according to the size of the entire modulus and not its factors, has a [record of factoring 768bits](https://en.wikipedia.org/wiki/RSA_Factoring_Challenge#The_prizes_and_records) in 2009. That might be our best bet, although the modulus is still too big for us to try. In the [Logjam](https://weakdh.org/) paper last year could be read that the NSA might have the capacity to do it.
 
 Q: What are the chances that if this was non-prime was a mistake, it generated factors large enough so that no one can reverse it?
 
