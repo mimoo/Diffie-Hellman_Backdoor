@@ -8,7 +8,17 @@
  
 * [github/test_DHparams](https://github.com/mimoo/test_DHparams) contains a tool to check your Diffie-Hellman parameters (is the modulus long enough? Is it a safe prime? ...)
 
-## Socat? What?
+Also, this page is getting long so here's a table of content:
+
+1. [Socat? What?](#socat-what-timeline-of-events)
+2. [Human Error](#human-error)
+3. [How to implement a NOBUS backdoor](#how-to-implement-a-nobus-backdoor-in-dh)
+4. [How to reverse socat's non prime modulus](#how-to-reverse-socats-non-prime-modulus)
+5. [How is the attacker using the backdoor](#how-is-the-attacker-using-the-backdoor)
+6. [What about socat's new prime modulus?](#what-about-socats-new-prime-modulus)
+7. [Resources](#resources)
+
+## Socat? What? (timeline of events)
 
 On February 1st 2016, a security advisory was posted to Openwall by a [Socat](http://www.dest-unreach.org/socat/) developer: [Socat security advisory 7 - Created new 2048bit DH modulus](http://www.openwall.com/lists/oss-security/2016/02/01/4)
 
@@ -32,7 +42,7 @@ This research's goal is to understand how this could possibly be a backdoor. And
 * check if we can reverse the socat backdoor to use it ourselve
 * Try to answer the question: "does it look like a backdoor?"
 
-# Human errors
+## Human error
 
 How likely is it a human error?
 
@@ -42,7 +52,7 @@ How likely is it a human error?
 
 * [Someone proposed](https://www.reddit.com/r/crypto/comments/43wh7h/the_socat_backdoor/czlxydf) something weird that I didn't understand. If someone wants to help me here.
 
-# How to implement a NOBUS DH
+## How to implement a NOBUS backdoor in DH
 
 There seem to be different ways, with different consequences, to do that. [backdoor_generator.sage](backdoor_generator.sage) allows you to generate backdoored DH parameters according to these different techniques, the explanations are in the source as well.
 
@@ -67,7 +77,7 @@ The proof of concept is a step by step explanation of what's happening. Above yo
 
 To run it yourself you will need Sage. You can also use an online version of it a [cloud.sagemath.com](http://cloud.sagemath.com).
 
-## How to reverse socat's non-prime dh1024_p
+## How to reverse socat's non-prime modulus
 
 from what we learned in implementing such a backdoor, we will see how we can reverse it to use it ourselves.
 
@@ -86,6 +96,8 @@ Another very good algorithm at factoring is the **Elliptic Curve Method** or  [E
 [The records](http://www.loria.fr/~zimmerma/records/top50.html) found factors of size 276bits. This is again a problem if the backdoored modulus is composed of two 512bits primes.
 
 **The Quadratic Sieve**, or [QS](https://en.wikipedia.org/wiki/Quadratic_sieve) algorithm running-time depends on the modulus's size, best for numbers under 400-500bits, and so is out of reach for our big 1024bits modulus.
+
+> Then, at some predetermined point where ECM is less likely to find a factor over time than the time taken to run a sieve method, you switch from ECM to the sieve method, which is SIQS below ~100 digits and NFS above 100 digits. These sieve methods are different in that they take a fixed amount of time for a given input number, and are guaranteed* to produce a factorization at the end. ([Dubslow](http://www.mersenneforum.org/showpost.php?p=427248&postcount=22))
 
 Finally the **General Number Field Sieve**, or the [GNFS](https://en.wikipedia.org/wiki/General_number_field_sieve) algorithm, which works according to the size of the entire modulus and not its factors, has a [record of factoring 768bits](https://en.wikipedia.org/wiki/RSA_Factoring_Challenge#The_prizes_and_records) in 2009. That might be our best bet, although the modulus is still too big for us to try. In the [Logjam](https://weakdh.org/) paper last year could be read that the NSA might have the capacity to do it.
 
@@ -106,7 +118,7 @@ This means three things:
 
 217 bits is feasible to find with ECM (maybe with p-1 factorization algorithm)
 
-# How is the attacker using the backdoor?
+## How is the attacker using the backdoor?
 
 1. The attacker knows the *factorization of the modulus*
 2. That means he knows the *factorization of the order*
@@ -120,13 +132,13 @@ But there exists faster and easier to use algorithms that work in `O(sqrt(modulu
 
 Note: In our proof of concept [PoC.sage](PoC.sage), the subgroups are so small (<20bits) that the naive approach of testing all powers of the generator is fast enough to compute the discrete logarithm of all the subgroups.
 
-# What about socat's new prime dh2048_p's order
+## What about socat's new prime modulus
 
 A new order has been generated, but we know nothing about its order: checking it with [test_DHparams](https://github.com/mimoo/test_DHparams) we confirm that it is a safe prime (`2q + 1`) so its order is implicit (`2q`).
 
 ![checking diffie hellman modulus](https://www.cryptologie.net/upload/Screen_Shot_2016-02-22_at_10.28_.42_PM_.png)
 
-# Resources
+## Resources
 
 * [Thai Duong's blogpost](http://vnhacker.blogspot.com/2016/02/exploiting-diffie-hellman-bug-in-socat.html)
 * [crypto stackexchange's post](http://crypto.stackexchange.com/questions/32415/how-does-a-non-prime-modulus-for-diffie-hellman-allow-for-a-backdoor/32431?noredirect=1)
