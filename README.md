@@ -81,13 +81,13 @@ I tested if the generator (2) has order 271-1 or 13,597-1 or (271-1)*(13,597-1).
 
 But an attacker could have easily chosen factors of `p-1` and `q-1` to be of size > 50bits which would have canceled any possibility of Pollard's p-1 to factor `p` or `q`. He could have also added two 60 bits factors to void the B2 bound as well.
 
-Another very good algorithm at factoring is [ECM](https://en.wikipedia.org/wiki/Lenstra_elliptic_curve_factorization) that only depends on the size of the smallest factor.
+Another very good algorithm at factoring is the **Elliptic Curve Method** or  [ECM](https://en.wikipedia.org/wiki/Lenstra_elliptic_curve_factorization), that only depends on the size of the smallest factor.
 
 [The records](http://www.loria.fr/~zimmerma/records/top50.html) found factors of size 276bits. This is again a problem if the backdoored modulus is composed of two 512bits primes.
 
-[The Quadratic Sieve](https://en.wikipedia.org/wiki/Quadratic_sieve) algorithm running-time depends on the modulus's size, best for numbers under 400-500bits, and so is out of reach for our big 1024bits modulus.
+**The Quadratic Sieve**, or [QS](https://en.wikipedia.org/wiki/Quadratic_sieve) algorithm running-time depends on the modulus's size, best for numbers under 400-500bits, and so is out of reach for our big 1024bits modulus.
 
-Finally the [GNFS](https://en.wikipedia.org/wiki/General_number_field_sieve) algorithm, which works according to the size of the entire modulus and not its factors, has a [record of factoring 768bits](https://en.wikipedia.org/wiki/RSA_Factoring_Challenge#The_prizes_and_records) in 2009. That might be our best bet, although the modulus is still too big for us to try. In the [Logjam](https://weakdh.org/) paper last year could be read that the NSA might have the capacity to do it.
+Finally the **General Number Field Sieve**, or the [GNFS](https://en.wikipedia.org/wiki/General_number_field_sieve) algorithm, which works according to the size of the entire modulus and not its factors, has a [record of factoring 768bits](https://en.wikipedia.org/wiki/RSA_Factoring_Challenge#The_prizes_and_records) in 2009. That might be our best bet, although the modulus is still too big for us to try. In the [Logjam](https://weakdh.org/) paper last year could be read that the NSA might have the capacity to do it.
 
 Q: What are the chances that if this was non-prime was a mistake, it generated factors large enough so that no one can reverse it?
 
