@@ -51,9 +51,10 @@ def produce_good_enough_generator(modulus, order, subgroups, g=2):
     return g
 
 # Produce a generator of a target subgroup for any kind of group
-def produce_bad_generator(modulus, target, g=2):
+def produce_bad_generator(modulus, order_group, target, g=2):
     while int(power_mod(g, target, modulus)) != 1:
         g = randint(2, modulus - 1)
+        g = power_mod(g, order_group//target, modulus)
     return g
             
 ################################################################# 
@@ -149,7 +150,7 @@ def method2(modulus_size, number_of_factors, smooth_size):
 def method3(modulus_size, number_of_factors, smooth_size, B2_size):
     """
     # Description
-    * This is the same method as method 1 above, except:
+    * This is the same method as method 2 above, except:
     one q_i (we'll call it q_B2) of each p_i-1 is big.
     * This makes the p_i-1 "partially" smooth
 
@@ -240,7 +241,7 @@ def method4(modulus_size=1024, factors_size=256):
     number_of_factors = modulus_size // factors_size
     return method2(modulus_size, number_of_factors, factors_size)
 
-def method5(modulus_size, generator_order):
+def method5(modulus_size, subgroups_order, large_factor_size):
     """
     # Description
     * n = pq and p-1 has large factors except for a small one that will
@@ -253,14 +254,20 @@ def method5(modulus_size, generator_order):
     q = random_prime(1<<(prime_size+1), lbound=1<<(prime_size-3))
 
     # p
-    large_factor = prime_size - generator_order
-
+    number_small_subgroups = (prime_size - large_factor_size) // subgroups_order
     p = 0
     while not is_prime(p):
-        p_1 = random_prime(1<<(generator_order+1), lbound=1<<(generator_order-3))
-        p_2 = random_prime(1<<(large_factor+1), lbound=1<<(large_factor-3))
-        p = 2*p_1*p_2 + 1
-    # 
+        subgroups_list = [2]
+        generator_subgroup = 2
+        # generate the `number_small_subgroups` small subgroups
+        for j in range(number_small_subgroups):
+            prime = random_prime(1<<(subgroups_order+1), lbound=1<<(subgroups_order-3))
+            subgroups_list.append(prime)
+            generator_subgroup *= prime
+        # the large rest
+        large_subgroup = random_prime(1<<(large_factor_size+1), lbound=1<<(large_factor_size-3))
+        # p
+        p = generator_subgroup * large_subgroup + 1
 
     # compute the modulus
     modulus = p * q
@@ -272,18 +279,18 @@ def method5(modulus_size, generator_order):
         sys.exit(1)
 
     # find a generator of the small subgroup
-    g = produce_bad_generator(modulus, p_1)
+    g = produce_bad_generator(modulus, order_group, generator_subgroup)
 
     # print
     print "modulus   =", modulus
     print "bitlength =", len(bin(modulus)) - 2
     print "factors   =", p, " * ", q
-    print "subgroup  =", p_1
+    print "subgroup  =", subgroups_list
     print "generator =", g
     print "# be sure to test if you can do a DLOG modulo", subgroups_list[-1]
 
     #
-    return modulus, subgroups_list, p_i, g
+    return modulus, subgroups_list, generator_subgroup, g
 
 def method6():
     return True
@@ -296,6 +303,7 @@ menu = ["modulus p is prime, p-1 have 'small' factors",
         "modulus = pq with p-1 and q-1 smooth",
         "same as above but partially smooth",
         "modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1",
+        "modulus = pq with p-1 partially smooth, g generates the smooth part"
         ]
 
 def main():
@@ -342,17 +350,19 @@ def main():
     if choice == 4:
         print "# using method 4.", menu[3]
         """
-        We compute n = p1*p2*p3*p4 with each p_i the same large size and
+        We compute n = p1*p2*p3*p4 with each p_i 256bits and
         p_i - 1 = 2q_i with q_i prime (so p_i - 1 are not smooth)
         This is not a very good way, because easily factorable
         """
-        method4()
+        method4(1024, 256)
     if choice == 5:
         print "# using method 5.", menu[4]
         """
-        We compute n = pq where p-1 has "one" (or few) small factor
+        We compute n = pq with p and q prime s.t.
+        p-1 has a few 32bits factors and a large 250bits factor
+        We use a generator of the entire small subgroups
         """
-        method5()
+        method5(1024, 32, 250)
 
 
 if __name__ == "__main__":
