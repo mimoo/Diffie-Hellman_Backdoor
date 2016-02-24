@@ -24,7 +24,7 @@ Looking at the commit logs you can see that they used a 512 bits Diffie-Hellman 
 
 > Socat did not work in FIPS mode because 1024 instead of 512 bit DH prime is required. Thanks to Zhigang Wang for reporting and sending a patch.
 
-The person who pushed the commit is *Gerhard Rieger* who is the same person who fixed it a year later. In the comment he refers to an Oracle employee at the time who has yet to comment on his mistake.
+The person who pushed the commit is *Gerhard Rieger* who is the same person who fixed it a year later. In the comment he refers to an Oracle employee at the time who has yet to comment on his mistake. It also seems like his github account and his personnal websites were deleted the day this security advisory was published.
 
 This research's goal is to understand how this could possibly be a backdoor. And more particularly, a [Nobody-but-us](https://en.wikipedia.org/wiki/NOBUS) one (*NOBUS*). Here are the objectives of this research:
 
@@ -59,11 +59,11 @@ In the proof of concept the small subgroup attack is implemented instead of Pohl
 
 Note that these issues should not arrise if the DH parameters were generated properly, that is the order and subgroups orders should be known. If the prime is a safe prime, you don't need to do anything. If it is not, it might be that the order of the group (`p-1`) is smooth, this is a bad idea but nonetheless you can verify that the public key received lies in the correct subgroup by raising it to the power of the subgroup. See [rfc2785](https://tools.ietf.org/html/rfc2785) for more information.
 
-![proof of concept](http://i.imgur.com/CL2wk5V.png)
+![proof of concept](http://i.imgur.com/L7cNJP0.png)
 
 The proof of concept is a step by step explanation of what's happening. Above you can see the generation of the backdoored modulus, bellow you can see the attack tacking place and recovering discrete logs of each of the subgroups
 
-![discrete logs](http://i.imgur.com/KojNtVY.png)
+![discrete logs](http://i.imgur.com/kKgNjmh.png)
 
 To run it yourself you will need Sage. You can also use an online version of it a [cloud.sagemath.com](http://cloud.sagemath.com).
 
