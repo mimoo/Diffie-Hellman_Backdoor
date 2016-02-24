@@ -104,7 +104,21 @@ This means three things:
 2. the probability that the second-largest prime factor of `n` is smaller than 217 bits is 1/2.
 3. The total number of prime factor of `n` is expected to be 7 (we already have 2).
 
-217 bits is already too large a factor to find with ECM or p-1 factorization algorithm according to [ECM and p-1 records](http://www.loria.fr/~zimmerma/records/top50.html) (of 83 digits 3 years ago). It is largely do-able with GNFS (which records is of 768 bits). A discretelog modulo a 217 bits modulus is easy according to the [DLOG records](https://en.wikipedia.org/wiki/Discrete_logarithm_records) (of 596 bits 2 years ago). Logjam did tackle a 512 bits as well, in the matter of minutes, after months of pre-computing.
+217 bits is feasible to find with ECM (maybe with p-1 factorization algorithm)
+
+# How is the attacker using the backdoor?
+
+1. The attacker knows the *factorization of the modulus*
+2. That means he knows the *factorization of the order*
+3. He can compute the discrete logarithm in each subgroup and re-combine them to the real discrete logarithm ([Pohlig-Hellman](https://en.wikipedia.org/wiki/Pohlig%E2%80%93Hellman_algorithm)). This can be done passively with PH, or actively ([small subgroup confinment attack](https://en.wikipedia.org/wiki/Small_subgroup_confinement_attack)) by sending points of different subgroup instead of computing them with PH.
+
+How does he compute the Discrete Logarithm?
+
+[Most records](https://en.wikipedia.org/wiki/Discrete_logarithm_records) use the **NFS** algorithm to compute the DLOG. The best so far is modulo 596 bits. Logjam did tackle a 512 bits as well.
+
+But there exists faster and easier to use algorithms that work in `O(sqrt(modulus))` like **Pollard Rho** or **Baby-Step-Giant-Step**. That means in a subgroup of prime order 64bits, these algorithms would compute a discrete logarithm in ~2^32 operations.
+
+Note: In our proof of concept [PoC.sage](PoC.sage), the subgroups are so small (<20bits) that the naive approach of testing all powers of the generator is fast enough to compute the discrete logarithm of all the subgroups.
 
 # What about socat's new prime dh2048_p's order
 
