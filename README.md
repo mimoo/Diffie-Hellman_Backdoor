@@ -46,7 +46,11 @@ How likely is it a human error?
 
 There seem to be different ways, with different consequences, to do that. [backdoor_generator.sage](backdoor_generator.sage) allows you to generate backdoored DH parameters according to these different techniques, the explanations are in the source as well.
 
-There is a working proof of concept in [PoC.sage](PoC.sage) that implements one way of doing it: 
+![backdoor generator menu](http://i.imgur.com/ReNnJ7U.png)
+
+![backdoor generator result](http://i.imgur.com/klxlZpB.png)
+
+There is also a working proof of concept in [PoC.sage](PoC.sage) that implements one way of doing it: 
 
 It creates a non-prime modulus `p = p_1 * p_2` with `p_i` primes, such that
 `p_i - 1` are smooth. Since the order of the group will be `(p_1 - 1)(p_2 - 1)` (smooth) and known only to the malicious person who generated `p`, *Pohlig-Hellman* (passive) or a *Small Subgroup Confinment attack* (active) can be used to recover the private key.
