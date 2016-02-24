@@ -84,7 +84,7 @@ This means three things:
 2. the probability that the second-largest prime factor of `n` is smaller than 217 bits is 1/2.
 3. The total number of prime factor of `n` is expected to be 7 (we already have 2).
 
-217 bits is already too large a factor to find according to [ECM and p-1 records](http://www.loria.fr/~zimmerma/records/top50.html) (of 83 digits 3 years ago). Whereas even a discretelog modulo a 217 bits modulus is easy according to the [DLOG records](https://en.wikipedia.org/wiki/Discrete_logarithm_records) (of 596 bits 2 years ago)
+217 bits is already too large a factor to find with ECM or p-1 factorization algorithm according to [ECM and p-1 records](http://www.loria.fr/~zimmerma/records/top50.html) (of 83 digits 3 years ago). It is largely do-able with GNFS (which records is of 768 bits). A discretelog modulo a 217 bits modulus is easy according to the [DLOG records](https://en.wikipedia.org/wiki/Discrete_logarithm_records) (of 596 bits 2 years ago). Logjam did tackle a 512 bits as well, in the matter of minutes, after months of pre-computing.
 
 # What about socat's new prime dh2048_p's order
 
