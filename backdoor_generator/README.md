@@ -1,7 +1,5 @@
 # Ways to generate a non-prime DH modulus to create a NOBUS backdoor
 
-Check the next section [How to build a secure NOBUS backdoor](how-to-build-a-secure-nobus-backdoor) for the theory behind the numbers.
-
 Here are the different methods you can use to build the DH backdoor:
 
 1. [modulus p is prime, p-1 have 'small' factors]()
@@ -10,6 +8,13 @@ Here are the different methods you can use to build the DH backdoor:
 1. [modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1]()
 1. [modulus = pq with p-1 partially smooth, g generates the smooth part]()
 1. [modulus = pq with p-1 SNFS-friendly (factors are SNFS primes)]()
+
+And the last section is on [How to build a secure NOBUS backdoor](how-to-build-a-secure-nobus-backdoor) for the theory behind the numbers.
+
+Also this directory includes:
+
+* [backdoor_generator.sage](backdoor_generator.sage): the script to generate the backdoored parameters
+* [dhparams_exporter.py](dhparams_exporter.py): a script to export 
 
 ## How to build a secure NOBUS backdoor
 
