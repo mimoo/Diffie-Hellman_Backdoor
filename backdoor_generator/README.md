@@ -70,13 +70,13 @@ The first method we could think of is to use a prime modulus `p` which `p-1` fac
 
 Nobus:
 
-* `p-1` has to be big enough to be resistant to factorizations like QS and NFS
-* `p-1` factors have to be greater than 300 bits
-* `p-1` factors `p_i` have to be checked s.t. `p_i - 1` are not smooth
+* `p-1` has to be big enough to be resistant to factorizations like QS and NFS.
+* `p-1` factors have to be greater than 300 bits to be resistant to ECM.
+* `p-1` factors `p_i` have to be checked s.t. `p_i - 1` are not smooth to be resistant to Pollard p-1.
 
-exploitability:
+Exploitability:
 
-* Pohlig-Hellman need the 'small' factors to be small enough
+* Pohlig-Hellman need the 'small' factors to be small enough.
 
 proposition:
 
@@ -85,21 +85,22 @@ proposition:
 
 ## Method2: modulus = pq with p-1 and q-1 smooth
 
-    Description
-    * This method creates a modulus n = p_1 * ... * p_{number_of_factors}
-    with each p_i - 1 smooth, that is, each p_i - 1 = q_1 * ... * q_{something} 
-    * `something` is calculated according to `smooth_size`:
-    each q_i is of size ~ `smooth_size`
+Since there is no way to build a NOBUS backdoor with a prime modulus, we will now look into composite modulus. This method creates a modulus `n = p_1 * ... * p_k` where each `(p_i - 1)/2` is a composite of 'small' factors: each `(p_i - 1)/2 = q_1 * ... * q_l` with `q_i` 'small'
 
-    How to use the backdoor
-    * To use this backdoor you need to keep track of each q_i
-    * Pohlig-Hellman will have to do the DLOG modulo every q_i
-    * To verify that the `smooth_size` is low enough: try to compute a DLOG on a q_i
+Nobus:
 
-    NOBUS?
-    * Since each p_i-1 are smooth, i's highly possible that
-    Pollard's p-1 factorization algorithm could factor the modulus
+* Since the factors of `(p_i-1)/2` are 'small', i's highly possible that *Pollard's p-1* factorization algorithm could factor the modulus.
 
+Exploitability:
+
+* `q_i` have to be 'small' enough for Pohlig-Hellman.
+
+Proposition:
+
+* a 1024bits modulus `n = p_1 * p_2` with both `p_1` and `p_2` 512 bits
+* `(p_1-1)/2 = q_1 * ... * q_10` with `q_i` ~ 50bits
+* generator `g` of order `q_1 * ... * q_10`
+* `(p_2-1)/2` can be safe-prime to avoid Pollard's p-1
 
 ## Method3: modulus = pq with p-1 and q-1 partially-smooth
 
