@@ -135,10 +135,21 @@ Proposition:
 
 ## Method5: modulus = pq with p-1 partially smooth, g generates the smooth part
 
-    Description
-    * n = pq and p-1 has large factors except for a small one that will
-    be our generator's subgroup
+Another idea is to try avoiding Pohlig-Hellman again and place the generator `g` in a group small enough to allow for Pollard Rho.
 
+`n = p * q` with `q` a safe prime and `p` a prime s.t. `(p-1)/2 = p_1 * p_2` with `p_1` the small subgroup of our generator and `p_2` a large one to avoid Pollard's p-1.
+
+Nobus:
+
+* As usual, if we don't use the Pohlig-Hellman trick to build our parameters, the backdoor is accessible to anyone willing to try to compute the discrete logarithm.
+
+Exploitability:
+
+* `p_1` has to be small enough to allow for Pollard Rho.
+
+Proposition:
+
+* This doesn't really add anything to Method 3. This is not a NOBUS
 
 ## Method6: modulus = pq with p-1 SNFS-friendly (factors are SNFS primes)
 
