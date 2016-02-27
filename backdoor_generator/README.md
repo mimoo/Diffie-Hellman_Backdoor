@@ -21,10 +21,10 @@ Also this directory includes:
 
 The obvious way is to ease the discrete logarithm problem of one of the public key. This can be achieved by making one of the following discrete logarithm easier:
 
-* Pollard Rho
-* NFS
+* Pollard Rho (`O(sqrt(p))` with `p` the order of the base)
+* NFS (depends on the modulus)
 * SNFS
-* Pohlig-Hellman
+* Pohlig-Hellman (`O(sqrt(q))` with `q` largest factor of the order)
 
 ### The NOBUS part
 
