@@ -50,9 +50,16 @@ def produce_good_enough_generator(modulus, order, subgroups, g=2):
                 break
     return g
 
+
+def not_so_bad(g, subgroups, modulus):
+    for subgroup in subgroups:
+        if power_mod(g, subgroup, modulus) == 1:
+            return False
+    return True
+
 # Produce a generator of a target subgroup for any kind of group
-def produce_bad_generator(modulus, order_group, target, g=2):
-    while int(power_mod(g, target, modulus)) != 1:
+def produce_bad_generator(modulus, order_group, subgroups, target, g=2):
+    while int(power_mod(g, target, modulus)) != 1 and not_so_bad(g, subgroups, modulus):
         g = randint(2, modulus - 1)
         g = power_mod(g, order_group//target, modulus)
     return g
@@ -279,7 +286,8 @@ def method5(modulus_size, subgroups_order, large_factor_size):
         sys.exit(1)
 
     # find a generator of the small subgroup
-    g = produce_bad_generator(modulus, order_group, generator_subgroup)
+    # This is not gonna work, we need to know the order of the generator
+    g = produce_bad_generator(modulus, order_group, subgroups_list, generator_subgroup)
 
     # print
     print "modulus   =", modulus
