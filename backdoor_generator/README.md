@@ -81,19 +81,65 @@ proposition:
 
 ## Method2: modulus = pq with p-1 and q-1 smooth
 
-`n = p_1 * ... * p_n` where `p_i - 1` are smooth
+    Description
+    * This method creates a modulus n = p_1 * ... * p_{number_of_factors}
+    with each p_i - 1 smooth, that is, each p_i - 1 = q_1 * ... * q_{something} 
+    * `something` is calculated according to `smooth_size`:
+    each q_i is of size ~ `smooth_size`
 
-There is a proof of concept of that method in [`PoC.sage`](PoC.sage)
+    How to use the backdoor
+    * To use this backdoor you need to keep track of each q_i
+    * Pohlig-Hellman will have to do the DLOG modulo every q_i
+    * To verify that the `smooth_size` is low enough: try to compute a DLOG on a q_i
 
-## n = p^i
+    NOBUS?
+    * Since each p_i-1 are smooth, i's highly possible that
+    Pollard's p-1 factorization algorithm could factor the modulus
 
-`n = p^i`, a power prime. 
 
-If `i = 2` and `n` is a 1024 bits number, then `p` is a 512bits number
+## Method3: modulus = pq with p-1 and q-1 partially-smooth
 
-It's basically the same method as the previous one but it seems easier to generate (although the previous method is pretty easy to generate, see the [proof of concept](PoC.sage))
+    Description
+    * This is the same method as method 2 above, except:
+    one q_i (we'll call it q_B2) of each p_i-1 is big.
+    * This makes the p_i-1 "partially" smooth
 
-## MOAR
+    How to use the backdoor
+    * To use this backdoor you need to keep track of each q_i
+    * Pohlig-Hellman will have to do the DLOG modulo every q_i
+    * To verify that the `B2_size` is low enough: try to compute a DLOG on a q_B2
 
-see this crypto stackexchange [answers](http://crypto.stackexchange.com/questions/32415/how-does-a-non-prime-modulus-for-diffie-hellman-allow-for-a-backdoor/32431)
+    NOBUS?
+    * Since both p-1 and q-1 have a large factor, 
+    * Pollard's p-1 would need a B2 bound too large to work efficiently.
+    * ECM could still work if the large factor is not large enough
 
+
+## Method4: modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1
+
+    Description
+    * n = \prod p_i with each p_i the same large size and
+    p_i - 1 = 2q_i with q_i prime (so p_i - 1 are not smooth)
+    
+    How to use the backdoor
+    * To use this backdoor you need to keep track of each p_i
+    * Pohlig-Hellman will have to do the DLOG modulo each p_i - 1
+    * This is a large modulus, for a 1024 bits dh modulus the dlogs will
+    have to be done modulus 256 bits prime
+
+    NOBUS?
+    * Since none of the p_i - 1 are smooth, Pollard's p-1 would not yield anything
+    * But 256bits factors are "easy" to find
+    * You also have "not easy" DLOG to do
+
+
+## Method5: modulus = pq with p-1 partially smooth, g generates the smooth part
+
+    Description
+    * n = pq and p-1 has large factors except for a small one that will
+    be our generator's subgroup
+
+
+## Method6: modulus = pq with p-1 SNFS-friendly (factors are SNFS primes)
+
+to be researched...

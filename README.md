@@ -54,7 +54,7 @@ How likely is it a human error?
 
 ## How to implement a NOBUS backdoor in DH
 
-There seem to be different ways, with different consequences, to do that. [backdoor_generator.sage](backdoor_generator.sage) allows you to generate backdoored DH parameters according to these different techniques, the explanations are in the source as well.
+There seem to be different ways, with different consequences, to do that. [backdoor_generator/backdoor_generator.sage](backdoor_generator/backdoor_generator.sage) allows you to generate backdoored DH parameters according to these different techniques, the explanations are in the source as well as the [README there](backdoor/README.md).
 
 ![backdoor generator menu](http://i.imgur.com/ReNnJ7U.png)
 
@@ -87,7 +87,7 @@ I tested if the generator (2) has order 271-1 or 13,597-1 or (271-1)*(13,597-1).
 
 **Pollard's p-1** factorization algorithm should work fine for finding factors `p` if `p-1` is smooth.
 
-[The records people have reached with this algorithm](http://www.loria.fr/~zimmerma/records/Pminus1.html) is to factor a ~200bits composite which largest factor was a 50bits and other factors under 30bits (with B1=10^9 and B2 =10^15).
+[The records people have reached with this algorithm](http://www.loria.fr/~zimmerma/records/Pminus1.html) is to factor a ~200bits composite which largest factor was a 50bits and other factors under 30bits (with B1=10^10 and B2 =10^15).
 
 But an attacker could have easily chosen factors of `p-1` and `q-1` to be of size > 50bits which would have canceled any possibility of Pollard's p-1 to factor `p` or `q`. He could have also added two 60 bits factors to void the B2 bound as well.
 
@@ -119,6 +119,8 @@ This means three things:
 217 bits is feasible to find with ECM (maybe with p-1 factorization algorithm)
 
 ## How is the attacker using the backdoor?
+
+Note: More info can be found in [backdoor_generator/README.md](backdoor_generator/README.md).
 
 1. The attacker knows the *factorization of the modulus*
 2. That means he knows the *factorization of the order*
