@@ -13,8 +13,9 @@ And the last section is on [How to build a secure NOBUS backdoor](how-to-build-a
 
 Also this directory includes:
 
-* [backdoor_generator.sage](backdoor_generator.sage): the script to generate the backdoored parameters
-* [dhparams_exporter.py](dhparams_exporter.py): a script to export 
+* [backdoor_generator.sage](backdoor_generator.sage): the script to generate the backdoored parameters.
+* [dhparams_exporter.py](dhparams_exporter.py): a script to export your backdoored parameters to *go* code or an *ASN.1 DER* encoded file (for OpenSSL).
+* [tests/](tests/): tests for the backdoored parameters created with the `backdoor_generator.sage` script.
 
 ## How to build a secure NOBUS backdoor
 
