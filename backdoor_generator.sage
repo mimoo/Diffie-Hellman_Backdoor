@@ -285,7 +285,7 @@ def method5(modulus_size, subgroups_order, large_factor_size):
     print "modulus   =", modulus
     print "bitlength =", len(bin(modulus)) - 2
     print "factors   =", p, " * ", q
-    print "subgroup  =", subgroups_list
+    print "subgroups =", subgroups_list
     print "generator =", g
     print "# be sure to test if you can do a DLOG modulo", subgroups_list[-1]
 
