@@ -2,12 +2,12 @@
 
 Here are the different methods you can use to build the DH backdoor:
 
-1. [Method 1: Modulus p is prime, p-1 have 'small' factors](method-1-modulus-p-is-prime-p-1-have-small-factors)
-1. [Method 2: modulus = pq with p-1 smooth](method-2-modulus-pq-with-p-1-smooth)
-1. [Method 3: modulus = pq with p-1 partially-smooth](method-3-modulus-pq-with-p-1-partially-smooth)
-1. [modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1]()
-1. [modulus = pq with p-1 partially smooth, g generates the smooth part]()
-1. [modulus = pq with p-1 SNFS-friendly (factors are SNFS primes)]()
+1. [Method 1: Modulus p is prime, p-1 have 'small' factors](#method-1-modulus-p-is-prime-p-1-have-small-factors)
+1. [Method 2: modulus = pq with p-1 smooth](#method-2-modulus-pq-with-p-1-smooth)
+1. [Method 3: modulus = pq with p-1 partially-smooth](#method-3-modulus-pq-with-p-1-partially-smooth)
+1. [modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1](#)
+1. [modulus = pq with p-1 partially smooth, g generates the smooth part](#)
+1. [modulus = pq with p-1 SNFS-friendly (factors are SNFS primes)](#)
 
 And the last section is on [How to build an exploitable NOBUS backdoor](how-to-build-an-exploitable-nobus-backdoor) for the theory behind the numbers.
 
@@ -117,21 +117,21 @@ Proposition:
 
 ## Method 4: modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1
 
-    Description
-    * n = \prod p_i with each p_i the same large size and
-    p_i - 1 = 2q_i with q_i prime (so p_i - 1 are not smooth)
-    
-    How to use the backdoor
-    * To use this backdoor you need to keep track of each p_i
-    * Pohlig-Hellman will have to do the DLOG modulo each p_i - 1
-    * This is a large modulus, for a 1024 bits dh modulus the dlogs will
-    have to be done modulus 256 bits prime
+We now try to lower the bar of the discrete logarithm problem without making use of Pohlig-Hellman.
 
-    NOBUS?
-    * Since none of the p_i - 1 are smooth, Pollard's p-1 would not yield anything
-    * But 256bits factors are "easy" to find
-    * You also have "not easy" DLOG to do
+We set `n = p_1 * p_2 * p_3` with `p_i` of around the same size, s.t. `(p_i-1)/2` is prime (safe primes)
 
+Nobus:
+
+* `p_i` should be around 400 to 500bits to counter the ECM factorization
+
+Exploitability:
+
+* Pohlig-Hellman will have to do the DLOG modulo each `p_i - 1`
+
+Proposition:
+
+* The factors of `n` are too big to do Pohlig-Hellman. This method doesn't seem to bring anything to [Method 3](#method-3-)
 
 ## Method5: modulus = pq with p-1 partially smooth, g generates the smooth part
 
