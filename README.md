@@ -1,11 +1,14 @@
 # How to backdoor Diffie-Hellman, lessons learned from the Socat non-prime prime
 
-* This repo contains some research I'm currently doing on the Socat backdoor:
- - ![backdoor_generator.sage](backdoor_generator.sage) allows you to generate parameters for a DH backdoor
- - ![PoC.sage](PoC.sage) is a proof of concept (generation + simulation of attack)
- - ![socat_primes.sage](socat_primes.sage) contains old and new socat's primes
- - ![whitepaper.tex](whitepaper.tex) wannabe whitepaper
- 
+This repo contains some research I'm currently doing on the Socat backdoor:
+
+* ![backdoor_generator/](backdoor_generator/) everything to generate parameters for a DH backdoor
+* ![attack/](attack/) contains everything to generate the attack on both Socat and Openssl (still not fully working)
+* ![PoC.sage](PoC.sage) is a (now *old*) proof of concept (generation + small subgroup attack)
+* ![socat_reverse/](socat_reverse/) contains work on reversing the backdoor in the old 1024bits socat modulus and checking the security of the new 2048bits one.
+* ![estimations/](estimations/) hopefuly soon it will be full with estimations on Pohlig-Hellman and Pollard Rho
+* ![whitepaper.tex](whitepaper.tex) wannabe whitepaper
+
 * [github/test_DHparams](https://github.com/mimoo/test_DHparams) contains a tool to check your Diffie-Hellman parameters (is the modulus long enough? Is it a safe prime? ...)
 
 Also, this page is getting long so here's a table of content:

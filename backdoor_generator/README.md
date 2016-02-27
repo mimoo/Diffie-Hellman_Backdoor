@@ -9,7 +9,7 @@ Here are the different methods you can use to build the DH backdoor:
 1. [modulus = pq with p-1 partially smooth, g generates the smooth part]()
 1. [modulus = pq with p-1 SNFS-friendly (factors are SNFS primes)]()
 
-And the last section is on [How to build a secure NOBUS backdoor](how-to-build-a-secure-nobus-backdoor) for the theory behind the numbers.
+And the last section is on [How to build an exploitable NOBUS backdoor](how-to-build-an-exploitable-nobus-backdoor) for the theory behind the numbers.
 
 Also this directory includes:
 
@@ -17,7 +17,7 @@ Also this directory includes:
 * [dhparams_exporter.py](dhparams_exporter.py): a script to export your backdoored parameters to *go* code or an *ASN.1 DER* encoded file (for OpenSSL).
 * [tests/](tests/): tests for the backdoored parameters created with the `backdoor_generator.sage` script.
 
-## How to build a secure NOBUS backdoor
+## How to build an exploitable NOBUS backdoor
 
 The obvious way is to ease the discrete logarithm problem of one of the public key. This can be achieved by making one of the following discrete logarithm easier:
 
@@ -32,7 +32,7 @@ The obvious way is to ease the discrete logarithm problem of one of the public k
 
 * NFS/SNFS? (to be researched...)
 
-* Pohlig-Hellman only requires that the factorization of the order is known only to you.
+* Pohlig-Hellman requires that the factorization of the order is known to you in order to be used. There is an obvious trapdoor here that could be used.
 
 So to make a NOBUS backdoor, the obvious ways seems to be:
 
@@ -52,8 +52,6 @@ This also means that in both case it cannot be easily factorable (by p-1, ECM, Q
 
 ### The exploitability of the backdoor
 
-> According to state-of-the-art, the difficulty of solving DLOG in prime order fields of size 2n is, up to constants, asymptotically equivalent to that of breaking n-bit RSA. In practice though, DLOG is noticeably more difficult.
-
 To make the backdoor exploitable, each prime factor `p` of `n` participating in the base's `g` order have to be small enough so that the discrete logarithm is "doable" in the multiplicative group `(Z_p)*`.
 
 Of course doable varies according to the computing power of the adversary:
@@ -70,19 +68,19 @@ To make it a NOBUS `p-1` should be
 
 The first method we could think of is to use a prime modulus `p` which `p-1` factorization has to be known only to you. Then a combination of one or many of the 'small' factors of `p-1` could be your base's order. 
 
-exploitability:
-
-* Pohlig-Hellman need the 'small' factors to be small enough
-
 Nobus:
 
 * `p-1` has to be big enough to be resistant to factorizations like QS and NFS
 * `p-1` factors have to be greater than 300 bits
 * `p-1` factors `p_i` have to be checked s.t. `p_i - 1` are not smooth
 
+exploitability:
+
+* Pohlig-Hellman need the 'small' factors to be small enough
+
 proposition:
 
-* None. Since the factors have to be greater than 300 bits, we cannot exploit this.
+* None. Since the factors have to be greater than 300 bits, the DLOG would be done in 2^300 operations. We cannot exploit this.
 
 
 ## Method2: modulus = pq with p-1 and q-1 smooth
