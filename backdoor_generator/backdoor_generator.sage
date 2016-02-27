@@ -7,7 +7,7 @@
 # several method are availables
 ################################################################# 
 
-import sys
+import sys, pdb
 
 ################################################################# 
 # Helpers
@@ -50,19 +50,34 @@ def produce_good_enough_generator(modulus, order, subgroups, g=2):
                 break
     return g
 
+# returns the order of g
+def order_of_g(g, order, subgroups, modulus):
+    for subgroup in subgroups:
+        if power_mod(g, order//subgroup, modulus) == 1:
+            reduced_subgroups = list(subgroups)
+            reduced_subgroups.remove(subgroup)
+            return order_of_g(g, order//subgroup, reduced_subgroups, modulus)
+    return order, subgroups
 
-def not_so_bad(g, subgroups, modulus):
+# returns false if order of g is not a multiplication of some subgroups
+def not_so_bad(g, order, subgroups, modulus):
     for subgroup in subgroups:
         if power_mod(g, subgroup, modulus) == 1:
             return False
+        
     return True
 
 # Produce a generator of a target subgroup for any kind of group
 def produce_bad_generator(modulus, order_group, subgroups, target, g=2):
-    while int(power_mod(g, target, modulus)) != 1 and not_so_bad(g, subgroups, modulus):
+    while int(power_mod(g, target, modulus)) != 1 and not_so_bad(g, target, subgroups, modulus):
         g = randint(2, modulus - 1)
         g = power_mod(g, order_group//target, modulus)
-    return g
+    print "# Found a generator"
+    order_g, subgroups_g = order_of_g(g, target, subgroups, modulus)
+    print "generator_order:", order_g
+    print "inbits:", len(bin(order_g)) - 2
+    print "generator_subgr:", subgroups_g
+    return g, order_g, subgroups_g
             
 ################################################################# 
 # Methods
@@ -214,6 +229,7 @@ def method3(modulus_size, number_of_factors, smooth_size, B2_size):
         sys.exit(1)
 
     # find a generator
+    # we should make the generator target all the smooth factors except the large one
     g = produce_good_enough_generator(modulus, order_group, subgroups_list)
 
     # print
