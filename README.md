@@ -145,14 +145,18 @@ A new order has been generated, but we know nothing about its order: checking it
 
 ## Resources
 
-on Socat:
+### Socat's non-prime modulus
 
 * [Thai Duong's blogpost](http://vnhacker.blogspot.com/2016/02/exploiting-diffie-hellman-bug-in-socat.html)
 * [crypto stackexchange's post](http://crypto.stackexchange.com/questions/32415/how-does-a-non-prime-modulus-for-diffie-hellman-allow-for-a-backdoor/32431?noredirect=1)
 * [reddit's thread](https://www.reddit.com/r/crypto/comments/43wh7h/the_socat_backdoor/)
 * [metzdowd's discussion](http://www.metzdowd.com/pipermail/cryptography/2016-February/028033.html)
 
-on Backdoors:
+### Pohlig-Hellman
+
+* [Maurer, Yacobi - Non-interactive Public Key Cryptography (1991)](http://link.springer.com/chapter/10.1007%2F3-540-46416-6_43#page-1) section4
+
+### Backdoors in general
 
 * [Paper keys under doomarts](https://www.schneier.com/cryptography/paperfiles/paper-keys-under-doormats.pdf)
 * [Surreptitiously Weakening Cryptographic Systems](https://eprint.iacr.org/2015/097.pdf)
