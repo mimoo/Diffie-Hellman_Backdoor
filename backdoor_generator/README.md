@@ -2,9 +2,9 @@
 
 Here are the different methods you can use to build the DH backdoor:
 
-1. [modulus p is prime, p-1 have 'small' factors]()
-1. [modulus = pq with p-1 and q-1 smooth]()
-1. [same as above but partially smooth]()
+1. [Method 1: Modulus p is prime, p-1 have 'small' factors](method-1-modulus-p-is-prime-p-1-have-small-factors)
+1. [Method 2: modulus = pq with p-1 smooth](method-2-modulus-pq-with-p-1-smooth)
+1. [Method 3: modulus = pq with p-1 partially-smooth](method-3-modulus-pq-with-p-1-partially-smooth)
 1. [modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1]()
 1. [modulus = pq with p-1 partially smooth, g generates the smooth part]()
 1. [modulus = pq with p-1 SNFS-friendly (factors are SNFS primes)]()
@@ -83,7 +83,7 @@ proposition:
 * None. Since the factors have to be greater than 300 bits, the DLOG would be done in 2^300 operations. We cannot exploit this.
 
 
-## Method2: modulus = pq with p-1 and q-1 smooth
+## Method 2: modulus = pq with p-1 smooth
 
 Since there is no way to build a NOBUS backdoor with a prime modulus, we will now look into composite modulus. This method creates a modulus `n = p_1 * ... * p_k` where each `(p_i - 1)/2` is a composite of 'small' factors: each `(p_i - 1)/2 = q_1 * ... * q_l` with `q_i` 'small'
 
@@ -102,25 +102,20 @@ Proposition:
 * generator `g` of order `q_1 * ... * q_10`
 * `(p_2-1)/2` can be safe-prime to avoid Pollard's p-1
 
-## Method3: modulus = pq with p-1 and q-1 partially-smooth
 
-    Description
-    * This is the same method as method 2 above, except:
-    one q_i (we'll call it q_B2) of each p_i-1 is big.
-    * This makes the p_i-1 "partially" smooth
+## Method 3: modulus = pq with p-1 partially-smooth
 
-    How to use the backdoor
-    * To use this backdoor you need to keep track of each q_i
-    * Pohlig-Hellman will have to do the DLOG modulo every q_i
-    * To verify that the `B2_size` is low enough: try to compute a DLOG on a q_B2
+This is the same method as method 2 above, except that we can avoid Pollard's p-1 with another trick: we can have an extra 'large enough' factor of `(p_1-1)/2`. We do not need to use it in Pohlig-Hellman, it just have to be here to counter the factorization attack.
 
-    NOBUS?
-    * Since both p-1 and q-1 have a large factor, 
-    * Pollard's p-1 would need a B2 bound too large to work efficiently.
-    * ECM could still work if the large factor is not large enough
+Proposition:
+
+* a 1024bits modulus `n = p_1 * p_2` with both `p_1` and `p_2` 512 bits
+* `(p_1-1)/2 = q_1 * ... * q_8 * L` with `q_i` ~ 50bits and `L` ~ 100bits
+* generator `g` of order `q_1 * ... * q_8`
+* `(p_2-1)/2` can be safe-prime to avoid Pollard's p-1
 
 
-## Method4: modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1
+## Method 4: modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1
 
     Description
     * n = \prod p_i with each p_i the same large size and
