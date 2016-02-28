@@ -1,6 +1,6 @@
 # How to backdoor Diffie-Hellman, lessons learned from the Socat non-prime prime
 
-This repo contains some research I'm currently doing on the Socat backdoor:
+This repo contains some research I'm **currently** doing on the Socat backdoor:
 
 * ![backdoor_generator/](backdoor_generator/) everything to generate parameters for a DH backdoor
 * ![attack/](attack/) contains everything to generate the attack on both Socat and Openssl (still not fully working)
