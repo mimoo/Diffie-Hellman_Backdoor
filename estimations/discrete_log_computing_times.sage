@@ -22,7 +22,7 @@ def dumb_discrete_log(public_key, generator, modulus):
 
 # Pollard rho
 def Pollard_rho(public_key, generator, modulus, order):
-    I = ZmodN(modulus)
+    I = GF(modulus)
     return discrete_log_rho(I(public_key), I(generator), order)
 
 ########################################################################

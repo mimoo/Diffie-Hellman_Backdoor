@@ -1,21 +1,14 @@
 # Ways to generate a non-prime DH modulus to create a NOBUS backdoor
 
-Here are the different methods you can use to build the DH backdoor:
+**WORK IN PROGRESS** **I actually have reached different conclusions atm**
 
-1. [Method 1: Modulus p is prime, p-1 have 'small' factors](#method-1-modulus-p-is-prime-p-1-have-small-factors)
-1. [Method 2: modulus = pq with p-1 smooth](#method-2-modulus-pq-with-p-1-smooth)
-1. [Method 3: modulus = pq with p-1 partially-smooth](#method-3-modulus-pq-with-p-1-partially-smooth)
-1. [modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1](#)
-1. [modulus = pq with p-1 partially smooth, g generates the smooth part](#)
-1. [modulus = pq with p-1 SNFS-friendly (factors are SNFS primes)](#)
+This `README` documents the different methods researched and implemented in [backdoor_generator.sage](backdoor_generator.sage) to build a DH backdoor.
 
-And the last section is on [How to build an exploitable NOBUS backdoor](how-to-build-an-exploitable-nobus-backdoor) for the theory behind the numbers.
+The last section of this `README` is on [How to build an exploitable NOBUS backdoor](how-to-build-an-exploitable-nobus-backdoor) for the theory behind the numbers.
 
-Also this directory includes:
+You can also use [dhparams_exporter.py](dhparams_exporter.py): a script to export your backdoored parameters to *go* code or an *ASN.1 DER* encoded file (for OpenSSL).
 
-* [backdoor_generator.sage](backdoor_generator.sage): the script to generate the backdoored parameters.
-* [dhparams_exporter.py](dhparams_exporter.py): a script to export your backdoored parameters to *go* code or an *ASN.1 DER* encoded file (for OpenSSL).
-* [tests/](tests/): tests for the backdoored parameters created with the `backdoor_generator.sage` script.
+[test_backdoor.sage](test_backdoor.sage) is a script that tests the backdoored DH parameters you generated via [backdoor_generator.sage](backdoor_generator.sage).
 
 ## How to build an exploitable NOBUS backdoor
 
@@ -23,7 +16,7 @@ The obvious way is to ease the discrete logarithm problem of one of the public k
 
 * Pollard Rho (`O(sqrt(p))` with `p` the order of the base)
 * NFS (depends on the modulus)
-* SNFS
+* SNFS (depends on the modulus as well)
 * Pohlig-Hellman (`O(sqrt(q))` with `q` largest factor of the order)
 
 ### The NOBUS part
@@ -83,9 +76,47 @@ proposition:
 * None. Since the factors have to be greater than 300 bits, the DLOG would be done in 2^300 operations. We cannot exploit this.
 
 
-## Method 2: modulus = pq with p-1 smooth
+## Method 1: place g in a discrete-log-doable subgroup
 
-Since there is no way to build a NOBUS backdoor with a prime modulus, we will now look into composite modulus. This method creates a modulus `n = p_1 * ... * p_k` where each `(p_i - 1)/2` is a composite of 'small' factors: each `(p_i - 1)/2 = q_1 * ... * q_l` with `q_i` 'small'
+Since there is no way to build a NOBUS backdoor with a prime modulus, we will now look into composite modulus.
+
+> According to state-of-the-art, the difficulty of solving DLOG in prime order fields of size 2n is, up to constants, asymptotically equivalent to that of breaking n-bit RSA. In practice though, DLOG is noticeably more difficult. Moreover, DLOG is in most standardized algorithms performed in a smaller subgroup, and then the size of this subgroup matters too, in which case the symmetric key equivalent is theoretically half of the bit-size of said subgroup, again according to the same generic attacks applicable also in the EC case. This would imply DLOG sub-groups of the same size as a corresponding EC group. Note though that performing exponentiations over a finite field is noticeably more expensive than on an elliptic curve of equivalent security. (The difference can be on the order 10-40 times, depending on security level.)
+
+http://www.ecrypt.eu.org/ecrypt2/documents/D.SPA.20.pdf
+
+knowing the factorization of `n = pq` , we do `y = g^x mod p` and do the dlog there.
+
+* dlog with NFS => prime has to be [512, 1024] ~ [current research, NSA]
+
+* dlog with Pollard Rho => prime can be smaller
+
+-- notes --
+
+We set `n = p_1 * p_2 * p_3` with `p_i` of around the same size, s.t. `(p_i-1)/2` is prime (safe primes)
+
+Nobus:
+
+* `p_i` should be around 400 to 500bits to counter the ECM factorization
+
+Exploitability:
+
+* Pohlig-Hellman will have to do the DLOG modulo each `p_i - 1`
+
+Proposition:
+
+* The factors of `n` are too big to do Pohlig-Hellman. This method doesn't seem to bring anything to the other method?
+
+
+
+## Method 2: modulus = pq with p-1 SNFS-friendly (factors are SNFS primes)
+
+We can try to make the subgroup of the previous method bigger by using a SNFS prime.
+
+## Method 3: modulus = pq where (p-1)/2 has small factors for Pohlig-Hellman
+
+NFS and SNFS involves a lot of pre-computation. It seems like there should be "Easier" to exploit backdoors using Pohlig-Hellman. To do that we need the order of the generator to have 'small' factors.
+
+This method creates a modulus `n = p_1 * ... * p_k` where each `(p_i - 1)/2` is a composite of 'small' factors: each `(p_i - 1)/2 = q_1 * ... * q_l` with `q_i` 'small'
 
 Nobus:
 
@@ -103,7 +134,7 @@ Proposition:
 * `(p_2-1)/2` can be safe-prime to avoid Pollard's p-1
 
 
-## Method 3: modulus = pq with p-1 partially-smooth
+## Method 4: modulus = pq with p-1 partially-smooth
 
 This is the same method as method 2 above, except that we can avoid Pollard's p-1 with another trick: we can have an extra 'large enough' factor of `(p_1-1)/2`. We do not need to use it in Pohlig-Hellman, it just have to be here to counter the factorization attack.
 
@@ -113,44 +144,3 @@ Proposition:
 * `(p_1-1)/2 = q_1 * ... * q_8 * L` with `q_i` ~ 50bits and `L` ~ 100bits
 * generator `g` of order `q_1 * ... * q_8`
 * `(p_2-1)/2` can be safe-prime to avoid Pollard's p-1
-
-
-## Method 4: modulus = p_1*p_2*p_3*p_4 with no smooth p_i-1
-
-We now try to lower the bar of the discrete logarithm problem without making use of Pohlig-Hellman.
-
-We set `n = p_1 * p_2 * p_3` with `p_i` of around the same size, s.t. `(p_i-1)/2` is prime (safe primes)
-
-Nobus:
-
-* `p_i` should be around 400 to 500bits to counter the ECM factorization
-
-Exploitability:
-
-* Pohlig-Hellman will have to do the DLOG modulo each `p_i - 1`
-
-Proposition:
-
-* The factors of `n` are too big to do Pohlig-Hellman. This method doesn't seem to bring anything to [Method 3](#method-3-)
-
-## Method5: modulus = pq with p-1 partially smooth, g generates the smooth part
-
-Another idea is to try avoiding Pohlig-Hellman again and place the generator `g` in a group small enough to allow for Pollard Rho.
-
-`n = p * q` with `q` a safe prime and `p` a prime s.t. `(p-1)/2 = p_1 * p_2` with `p_1` the small subgroup of our generator and `p_2` a large one to avoid Pollard's p-1.
-
-Nobus:
-
-* As usual, if we don't use the Pohlig-Hellman trick to build our parameters, the backdoor is accessible to anyone willing to try to compute the discrete logarithm.
-
-Exploitability:
-
-* `p_1` has to be small enough to allow for Pollard Rho.
-
-Proposition:
-
-* This doesn't really add anything to Method 3. This is not a NOBUS
-
-## Method6: modulus = pq with p-1 SNFS-friendly (factors are SNFS primes)
-
-to be researched...

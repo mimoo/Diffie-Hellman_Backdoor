@@ -154,7 +154,11 @@ A new order has been generated, but we know nothing about its order: checking it
 
 ### Pohlig-Hellman
 
+* [Pohllig, Hellman - An Improved Algorithm for Computing Logarithms over GF(p) and Its Cryptographic Significance (1978)](http://www-ee.stanford.edu/~hellman/publications/28.pdf)
+
 * [Maurer, Yacobi - Non-interactive Public Key Cryptography (1991)](http://link.springer.com/chapter/10.1007%2F3-540-46416-6_43#page-1) section4
+
+* [Joux, Odlyzko, Pierrot - The Past, evolving Present and Future of Discrete Logarithm (2014)](https://www-almasty.lip6.fr/~pierrot/papers/DlogSurvey.pdf)
 
 ### Backdoors in general
 
