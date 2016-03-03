@@ -167,20 +167,21 @@ def main():
 
     print_table(["modulus bitsize", "DLOG algorithm", "time"], headers=True)
 
-
     test(10, "trials") # <1s
     test(10, "old_rho") # <1s
 
     test(20, "trials") # 1s
     test(20, "old_rho") # <1s
 
+    test(23, "trials") # 4s, 14s
+    
     #test(30, "trials") # 24m
-    test(30, "old_rho") # 1s
+    test(30, "old_rho") # 1s, 2s, 1s
 
-    test(40, "old_rho") # 59ms
     #test(40, "trials") # unknown (>1hour)
+    test(40, "old_rho") # 12s, 59s, 9s, 19s
 
-    test(50, "old_rho") # 59ms
+    # test(50, "old_rho") # unknown >10min
 
 
 if __name__ == "__main__":
