@@ -95,7 +95,20 @@ def Pollard_rho_tag_tracing(public_key, order, generator, modulus):
 ########################################################################
 
 # print a nice table
-print_table
+def print_table(data, headers=False):
+
+    if headers:
+        sys.stdout.write("\n+" + "-" * (len(data) * 20 + len(data)) + "\n")
+
+    sys.stdout.write("|")
+    for item in data:
+        item = item.center(20)
+        sys.stdout.write(item + "|")
+
+    sys.stdout.write("\n+")
+    for item in data:
+        sys.stdout.write("-" * 20 + "+")
+    sys.stdout.write("\n")
 
 # safe prime for worst-cases tests
 def safe_prime(bitlevel):
@@ -116,6 +129,7 @@ def setup(bitlevel, generator=2):
 def test(bitsize, algo):
     # init
     secret, public_key, modulus, order = setup(bitsize)
+    generator = 2
 
     # start timer
     start_time = time.time()
@@ -134,7 +148,8 @@ def test(bitsize, algo):
 
     # display
     if secret == secret_found:
-        print pad(str(bitsize) + "bits", 20), "|", pad(algo, 20), "|", pad(str(delta) + "s", 20), "|"
+        print_table([str(bitsize) + "bits", algo, str(delta) + "s"])
+
     else:
         print "secret", secret
         print "found", secret_found
@@ -150,30 +165,22 @@ def test(bitsize, algo):
 def main():
     print "# Time to compute discrete logs"
 
+    print_table(["modulus bitsize", "DLOG algorithm", "time"], headers=True)
 
-    print "10 bits"
-    secret, public_key, modulus, order = setup(10)
-    test("trials", secret, public_key, modulus, order) # <1s
-    test("old_rho", secret, public_key, modulus, order) # <1s
 
-    print "20 bits"
-    secret, public_key, modulus, order = setup(20)
-    test("old_rho", secret, public_key, modulus, order) # <1s
-    test("trials", secret, public_key, modulus, order) # 1s
+    test(10, "trials") # <1s
+    test(10, "old_rho") # <1s
 
-    print "30 bits"
-    secret, public_key, modulus, order = setup(30) # <- this takes time
-    test("old_rho", secret, public_key, modulus, order) # 1s
-    #test("trials", secret, public_key, modulus) # 24m
+    test(20, "trials") # 1s
+    test(20, "old_rho") # <1s
 
-    print "40 bits"
-    secret, public_key, modulus, order = setup(40) # 
-    test("old_rho", secret, public_key, modulus, order) # 59ms
-    #test("trials", secret, public_key, modulus) # unknown (>1hour)
+    #test(30, "trials") # 24m
+    test(30, "old_rho") # 1s
 
-    print "50 bits"
+    test(40, "old_rho") # 59ms
+    #test(40, "trials") # unknown (>1hour)
 
-    test(50, "old_rho", secret, public_key, modulus, order) # 59ms
+    test(50, "old_rho") # 59ms
 
 
 if __name__ == "__main__":
