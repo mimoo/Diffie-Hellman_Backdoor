@@ -20,8 +20,75 @@ def dumb_discrete_log(public_key, generator, modulus):
         g = Mod(g * generator, modulus)
         x += 1
 
+
+# https://eprint.iacr.org/2010/617.pdf
+def Pollard_rho_four_kangaroo(public_key, order, generator, modulus, a=0, b=1):
+    """ This is the latest improvement on Pollard Rho Lambda's algorithm
+    """
+    return 0
+
+# http://math.boisestate.edu/~liljanab/Crypto2Spring10/PollardKangaroo.pdf
+def Pollard_rho_lambda_improved(public_key, order, generator, modulus):
+
+    return 0
+
+# Pollard Rho Lambda or Pollard Kangaroo for serial computers
+# http://math.boisestate.edu/~liljanab/Crypto2Spring10/PollardKangaroo.pdf
+def Pollard_kangaroo_serial(public_key, order, generator, modulus, b=0):
+    """ This is the Pollard rho lambda or Pollard Kangaroo algorithm,
+    this version is for serial computers (no parallelization)
+    """
+    # initialization
+    alpha = generator # to keep the same variables as in the book
+    beta = public_key
+
+    # random walk
+    def f(x):
+        return power_mod(alpha, int(x), modulus)
+
+    # tame kangaroo
+    a = 0
+    if b==0:
+        b = order//2
+
+    x = power_mod(alpha, b, modulus)
+    x = Mod(x, modulus)
+
+    dx = 0
+    i = 0
+
+    # tame kangaroo jumping
+    while i < b:
+        fx = f(x)
+        x = x * power_mod(alpha, fx, modulus)
+        dx += fx
+        i += 1
+
+    # wild kangaroo
+    y = Mod(beta, modulus)
+
+    dy = 0
+    i = 0
+
+    # wild kangaroo jumping
+    while i < b:
+        fy = f(y)
+        y = y * power_mod(alpha, fy, modulus)
+        dy += fy
+
+        # trap
+        if x == y:
+            return (b + dx - dy) % order
+        if dy > b - a + dx:
+            break
+        i += 1
+
+    # failure
+    b = randint(2, order//2)
+    return Pollard_kangaroo_serial(public_key, order, generator, modulus, b)
+        
 # Handbook of applied crypto Pollard Rho
-def Old_school_Pollard_rho(public_key, order, generator, modulus, a=0, b=1):
+def Pollard_rho(public_key, order, generator, modulus, a=0, b=1):
     """ This is the implementation of the algorithm introduced in
     the Handbook of Applied Cryptography chapter 3.6.3
     """
@@ -76,7 +143,7 @@ def Old_school_Pollard_rho(public_key, order, generator, modulus, a=0, b=1):
     # failure
     a = randint(3, order)
     b = randint(3, order)
-    return Old_school_Pollard_rho(public_key, order, generator, modulus, a, b)
+    return Pollard_rho(public_key, order, generator, modulus, a, b)
 
         
 # Pollard rho
@@ -141,7 +208,9 @@ def test(bitsize, algo):
     elif algo == "rho":
         secret_found = Pollard_rho_tag_tracing(public_key, generator, modulus, order)
     elif algo == "old_rho":
-        secret_found = Old_school_Pollard_rho(public_key, order, generator, modulus)
+        secret_found = Pollard_rho(public_key, order, generator, modulus)
+    elif algo == "rho_lambda":
+        secret_found = Pollard_kangaroo_serial(public_key, order, generator, modulus)
 
     # end timer
     delta = int(time.time() - start_time)
@@ -151,12 +220,13 @@ def test(bitsize, algo):
         print_table([str(bitsize) + "bits", algo, str(delta) + "s"])
 
     else:
-        print "secret", secret
-        print "found", secret_found
-        print "-pubkey", public_key
-        print "-modulus", modulus
-        print "^secret", power_mod(generator, secret, modulus)
-        print "^found", power_mod(generator, secret_found, modulus)
+        print "SECRET NOT FOUND, DEBUG INFO:"
+        print "* secret", secret
+        print "* secret_found", secret_found
+        print "* pubkey", public_key
+        print "* modulus", modulus
+        print "* g^secret", power_mod(generator, secret, modulus)
+        print "* g^found", power_mod(generator, secret_found, modulus)
 
 ########################################################################
 # Tests
@@ -167,19 +237,26 @@ def main():
 
     print_table(["modulus bitsize", "DLOG algorithm", "time"], headers=True)
 
+
     test(10, "trials") # <1s
     test(10, "old_rho") # <1s
+    test(10, "rho_lambda") # <0s
 
     test(20, "trials") # 1s
     test(20, "old_rho") # <1s
+    test(20, "rho_lambda") # 6s
 
     test(23, "trials") # 4s, 14s
-    
+    test(23, "old_rho") # <1s
+    test(23, "rho_lambda") # 64s
+
     #test(30, "trials") # 24m
-    test(30, "old_rho") # 1s, 2s, 1s
+    test(30, "old_rho") # 1s, 2s, 1s, 0s
+    test(30, "rho_lambda") # 
 
     #test(40, "trials") # unknown (>1hour)
     test(40, "old_rho") # 12s, 59s, 9s, 19s
+    test(40, "rho_lambda") #
 
     # test(50, "old_rho") # unknown >10min
 
