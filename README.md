@@ -9,7 +9,11 @@ This repo contains some research I'm **currently** doing on the Socat backdoor:
 * ![estimations/](estimations/) hopefuly soon it will be full with estimations on Pohlig-Hellman and Pollard Rho
 * ![whitepaper.tex](whitepaper.tex) wannabe whitepaper
 
+Other repositories were created during this research:
+
 * [github/test_DHparams](https://github.com/mimoo/test_DHparams) contains a tool to check your Diffie-Hellman parameters (is the modulus long enough? Is it a safe prime? ...)
+
+* [github/GoNTL](https://github.com/mimoo/GoNTL) contains an extension of the go bignumber library along with an implementation of Pollard Rho for discrete logarithm
 
 ## How to implement a NOBUS backdoor in DH
 
