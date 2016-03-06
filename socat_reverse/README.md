@@ -137,6 +137,7 @@ Step 1 took 10019112ms
 Step 2 took 1429277ms
 ```
 
+A saved run of ECM `ecm -pm1 1e10 1e15` that lasted 10 days can be found here: [saved_ecm_run](saved_ecm_run)
 ## P-1
 
 I didn't save the previous run, although it found nothing. currently running with B1 = 10^12 which might be way too big. Will post the seed once done.

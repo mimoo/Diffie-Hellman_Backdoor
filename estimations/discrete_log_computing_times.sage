@@ -24,19 +24,25 @@ def dumb_discrete_log(public_key, generator, modulus):
 # https://eprint.iacr.org/2010/617.pdf
 def Pollard_rho_four_kangaroo(public_key, order, generator, modulus, a=0, b=1):
     """ This is the latest improvement on Pollard Rho Lambda's algorithm
+    At least it looks like it
     """
     return 0
 
 # http://math.boisestate.edu/~liljanab/Crypto2Spring10/PollardKangaroo.pdf
 def Pollard_rho_lambda_improved(public_key, order, generator, modulus):
-
+    """ Should be same as below, but doing both lists at the same time
+    storing both in hash table
+    """
+    
     return 0
 
 # Pollard Rho Lambda or Pollard Kangaroo for serial computers
 # http://math.boisestate.edu/~liljanab/Crypto2Spring10/PollardKangaroo.pdf
 def Pollard_kangaroo_serial(public_key, order, generator, modulus, b=0):
     """ This is the Pollard rho lambda or Pollard Kangaroo algorithm,
-    this version is for serial computers (no parallelization)
+    this version is for serial computers (no parallelization).
+    it seems like I need to store the first list in a hash table
+    Also we do not need to know the order of g to use it.
     """
     # initialization
     alpha = generator # to keep the same variables as in the book
@@ -44,7 +50,8 @@ def Pollard_kangaroo_serial(public_key, order, generator, modulus, b=0):
 
     # random walk
     def f(x):
-        return power_mod(alpha, int(x), modulus)
+        k = order // 2
+        return power_mod(alpha, int(x), k) % order
 
     # tame kangaroo
     a = 0
@@ -88,15 +95,18 @@ def Pollard_kangaroo_serial(public_key, order, generator, modulus, b=0):
     return Pollard_kangaroo_serial(public_key, order, generator, modulus, b)
         
 # Handbook of applied crypto Pollard Rho
-def Pollard_rho(public_key, order, generator, modulus, a=0, b=1):
+def Pollard_rho(public_key, order, generator, modulus, a=0, b=0):
     """ This is the implementation of the algorithm introduced in
     the Handbook of Applied Cryptography chapter 3.6.3
+    It is definitely not the latest improvement, 
+    nor the parallelizable version.
+    You need to know the order of the generator to use it
     """
     # initialization
     alpha = generator # to keep the same variables as in the book
     beta = public_key
 
-    if a != 0 or b != 0:
+    if a != 0 or b != 0: # <- wrong
         x = Mod(power_mod(alpha, a, modulus) * power_mod(beta, b, modulus), modulus)
     else:
         x = Mod(1, modulus)
@@ -109,11 +119,11 @@ def Pollard_rho(public_key, order, generator, modulus, a=0, b=1):
     
     # iteration function
     def iteration(x, a, b):
-        if Mod(x, 3) == 0: # x in S_1 (chosen from example)
+        if Mod(x, 3) == 1: # x in S_1 (chosen from example)
             x = beta * x
             b = b + 1
 
-        elif Mod(x, 3) == 1: # x in S_2
+        elif Mod(x, 3) == 0: # x in S_2
             x = x * x
             a = 2 * a
             b = 2 * b
@@ -145,18 +155,6 @@ def Pollard_rho(public_key, order, generator, modulus, a=0, b=1):
     b = randint(3, order)
     return Pollard_rho(public_key, order, generator, modulus, a, b)
 
-        
-# Pollard rho
-def Pollard_rho_tag_tracing(public_key, order, generator, modulus):
-    # defining our r-adding walk iterating function
-    def r_adding_walk(index, element):
-        # determines the index
-        print index
-        # get M_s
-        M_s = Mod(power_mod(generator, m_s, modulus) * power_mod(public_key, n_s, modulus), modulus)
-        # produces        
-        return element * M_s
-    
 ########################################################################
 # Helper functions
 ########################################################################
@@ -190,6 +188,12 @@ def setup(bitlevel, generator=2):
     modulus, q = safe_prime(bitlevel)
     secret = randint(2, q-1)
     public_key = power_mod(generator, secret, modulus)
+
+    """ For safe prime it is easy, for other groups:
+    Fp = GF(modulus)
+    g = Fp.multiplicative_generator()
+    """
+    
     return secret, public_key, modulus, q
 
 # run the test
@@ -237,7 +241,6 @@ def main():
 
     print_table(["modulus bitsize", "DLOG algorithm", "time"], headers=True)
 
-
     test(10, "trials") # <1s
     test(10, "old_rho") # <1s
     test(10, "rho_lambda") # <0s
@@ -252,14 +255,15 @@ def main():
 
     #test(30, "trials") # 24m
     test(30, "old_rho") # 1s, 2s, 1s, 0s
-    test(30, "rho_lambda") # 
+    #test(30, "rho_lambda") # 
 
+    test(35, "old_rho") # 12s
+    
     #test(40, "trials") # unknown (>1hour)
-    test(40, "old_rho") # 12s, 59s, 9s, 19s
-    test(40, "rho_lambda") #
+    test(40, "old_rho") # 12s, 59s, 9s, 19s, 120s, 32s, 27s
+    #test(40, "rho_lambda") #
 
     # test(50, "old_rho") # unknown >10min
-
-
+    
 if __name__ == "__main__":
-    main()
+    test()
