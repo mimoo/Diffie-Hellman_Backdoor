@@ -103,6 +103,12 @@ func parseTLSRecord(payload []byte) (int) {
 		// perform the attack
 		log.Println("starting the attack!")
 		client_write_MAC_key, server_write_MAC_key, client_write_key, server_write_key = attack(serverPubkey, clientPubkey, serverRandom[:], clientRandom[:]) // use of `go attack` ?
+		log.Println("got keys!")
+		log.Println("client_write_MAC_key=", client_write_MAC_key)
+		log.Println("server_write_MAC_key=", server_write_MAC_key)
+		log.Println("client_write_key=", client_write_key)
+		log.Println("server_write_key=", server_write_key)
+
 /*
   } else if payload[0] == 22 && handshake_step == 16 { // Encrypted Finished
 		log.Println("reached the encrypted finished")
