@@ -1,4 +1,4 @@
-import base64, pdb, sys
+import base64, pdb, sys, re, argparse
 
 #################################################################################
 # Helper functions
@@ -70,7 +70,7 @@ def to_go(modulus, generator):
   modulus = int_to_bytearray(modulus)
   dhparam += str(len(modulus)) + "]byte{"
   for ii in modulus:
-    dhparam += str(ii) + ", "
+    dhparam += hex(ii) + ", "
   dhparam += "}\n"
   
   #generator
@@ -78,32 +78,61 @@ def to_go(modulus, generator):
   generator = int_to_bytearray(generator)
   dhparam += str(len(generator)) + "]byte{"
   for ii in generator:
-    dhparam += str(ii) + ", "
+    dhparam += hex(ii) + ", "
   dhparam += "}\n"
 
   #
   return dhparam
 
-###
+### main ###
 
 def main():
-  # got modulus and generator from `sage backdoor_generator.sage 5`
-  # missing params for this backdoor are in `../attack/method5_dhparams.data`
-  modulus   = 223301975106993667325614167621709126547894648210186226643666068328617807516202545681655438155822192582033902502819313668103425198156427523424595010171112083255849911301850199554336445834580968127632569431148343473164461003102425641472990270060709999646440923327965355858492025074208423160672403731262306113
-  generator = 133577237272149091420470710599617727967503551130038227711083989919128111659010169338433592360601283105084573447723432702474485969595386752970787786319095099886758944622697198813658852048492827918528163024844484146263552371160527611868901190798297550101799050105104076967399921052206210187792453635470388932
+  # usage
+  """
+  parser = argparse.ArgumentParser(description='Export a modulus and a generator to a go or asn1 format.')
+  parser.add_argument('modulus', metavar='m', type=int, nargs='+',
+                      help='the modulus')
+  parser.add_argument('generator', metavar='g', type=int, nargs='+',
+                      help='the generator')
+  args = parser.parse_args()
+  """
 
-  # to asn1?
-  if len(sys.argv) > 1 and sys.argv[1] == "asn1":
-    dhparam = to_asn1(modulus, generator)
-  elif len(sys.argv) > 1 and sys.argv[1] == "go":
-    dhparam = to_go(modulus, generator)
-  # -help
-  else:
-    print "python params_to_asn1.py [asn1|go] (output_file)?"
+  if len(sys.argv) < 4:
+    print "normal usage:"
+    print "> python dhparams_exporter.py [asn1|go] [modulus] [generator] (output_file)"
+    print "decimal or hexadecimal permited"
+
     return
 
-  if len(sys.argv) > 2:
-    newFile = open(sys.argv[2], "w")
+  # parse modulus
+  modulus = sys.argv[2]
+
+  if re.match(r'[0-9]+', modulus):
+    modulus = int(modulus)
+  elif re.match(r'[A-Za-z0-9]+', modulus):
+    modulus = int(modulus, 16)
+  else:
+    print "cannot parse modulus"
+    return
+
+  # parse generator
+  generator = sys.argv[3]
+  if re.match(r'[0-9]+', generator):
+    generator = int(generator)
+  elif re.match(r'[A-Za-z0-9]+', generator):
+    generator = int(generator, 16)
+  else:
+    print "cannot parse generator"
+    return
+
+  # to asn1?
+  if sys.argv[1] == "asn1":
+    dhparam = to_asn1(modulus, generator)
+  elif sys.argv[1] == "go":
+    dhparam = to_go(modulus, generator)
+
+  if len(sys.argv) > 4:
+    newFile = open(sys.argv[4], "w")
     newFile.write(dhparam)
   else:
     print dhparam
