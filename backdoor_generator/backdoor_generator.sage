@@ -171,7 +171,7 @@ def main():
     # run method
     choice = 1
     if choice == 1:
-        g, n, p, q, p_order, q_order = method2(256, 20)
+        g, n, p, q, p_order, q_order = method2(1024, 30)
         #g, n, p, q, p_order, q_order = method2(512, 40)
 
         return
