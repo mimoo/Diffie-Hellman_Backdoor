@@ -80,23 +80,26 @@ func get_masterSecret(preMasterSecret []byte, clientRandom []byte, serverRandom 
 
 	// PRF!
 	masterSecret := make([]byte, 48)
+	log.Println(" | preMasterSecret:", preMasterSecret)
 	pHash(masterSecret, preMasterSecret, seed, sha256.New)
 
+	log.Println(" | masterSecret :", masterSecret)
+	
 	return masterSecret
 }
 
-func get_keys(masterSecret []byte) ([]byte, []byte, []byte, []byte) {
+func get_keys(masterSecret []byte, clientRandom []byte, serverRandom []byte) ([]byte, []byte, []byte, []byte) {
 	// let's say version tls1.2, AES-128-CBC, sha256 to keep things simple
 
 	// seed
 	var label = []byte("key expansion")
 	seed := make([]byte, 0, len(label) + len(clientRandom) + len(serverRandom))
 	seed = append(seed, label...)
-	seed = append(seed, clientRandom[:]...)
 	seed = append(seed, serverRandom[:]...)
+	seed = append(seed, clientRandom[:]...)
 
 	// PRF!
-	keys := make([]byte, 32*2 + 16*2) // HMAC-256 take 256bit keys, AES-128 takes 128bit keys...
+	keys := make([]byte, 32*2 + 16*2) // HMAC-256 take 256bit keys, AES-128 takes 128bit keys... // https://tools.ietf.org/html/rfc5246#appendix-C
 	pHash(keys, masterSecret, seed, sha256.New)
 
 	return keys[:32], keys[32:32*2], keys[32*2:32*2+16], keys[32*2+16:32*2+2*16]
@@ -162,12 +165,12 @@ func attack(serverPubkey []byte, clientPubkey []byte, serverRandom []byte, clien
 	x1 := gontl.CRT2(xp, xq, pp, qq)
 	log.Println("found one solution", x1)
 	// second solution
-	/*
+	
 	plus := new(big.Int)
 	plus.Mul(pp, qq)
 	x2 := new(big.Int)
 	x2.Add(x1, plus)
-*/
+
 	// Compute the pre-master secret
 	y2 := new(big.Int)
 	y2.SetBytes(clientPubkey)
@@ -178,15 +181,15 @@ func attack(serverPubkey []byte, clientPubkey []byte, serverRandom []byte, clien
 	x1.Exp(y2, x1, modulus) // first solution
 	log.Println("preMasterSecret:", x1)
 
-	//x2.Exp(y2, x2, modulus) // second solution
+	x2.Exp(y2, x2, modulus) // second solution
 
 	// Compute the master_secret
-	masterSecret := get_masterSecret(x1.Bytes(), clientRandom, serverRandom)
+	//masterSecret := get_masterSecret(x1.Bytes(), clientRandom, serverRandom)
 
-	// masterSecret := get_masterSecret(x2, clientRandom, serverRandom)
+	masterSecret := get_masterSecret(x2.Bytes(), clientRandom, serverRandom)
 
 	// Derive the keys
-	return get_keys(masterSecret)
+	return get_keys(masterSecret, clientRandom, serverRandom)
 }
 
 

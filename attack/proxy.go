@@ -120,20 +120,67 @@ func parseTLSRecord(payload []byte) (int) {
 		}
 */
 	} else {
-		log.Println("parsing something else")
+		log.Println(" | -> parsing something else")
 	}
 
 	// return the index of the next record
 	return record_length + 1 + 3
 }
 
+
+// function to decrypt a payload
+// we assume no compression algorithm used
+func decrypt(label string, payload []byte) []byte {
+	//log.Println(" | attempting to decrypt")
+	// what key to use?
+	var relevant_key []byte
+	if label == "server" {
+		relevant_key = server_write_key
+	} else {
+		relevant_key = client_write_key
+	}
+
+	// init AES
+	block, _ := aes.NewCipher(relevant_key)
+	iv := payload[:16]
+	//log.Println(" | -iv:", iv)
+	ciphertext := make([]byte, len(payload[16:]))
+	copy(ciphertext, payload[16:]) // we don't want to modify the payload
+	//log.Println(" | -ct:", ciphertext)
+
+	if len(ciphertext) % 16 != 0 {
+		log.Println(" | <warning> size of ciphertext is not a multiple of 128bits")
+	} else {
+		mode := cipher.NewCBCDecrypter(block, iv)
+		mode.CryptBlocks(ciphertext, ciphertext)
+	}
+
+	// remove padding
+	//log.Println(" | -pt+mac+padd:", ciphertext)
+	len_padding := int(ciphertext[len(ciphertext) - 1])
+	//log.Println(" | -padding:", int(len_padding))
+	ciphertext = ciphertext[:len(ciphertext) - len_padding]
+	
+	//log.Println(" | -pt+mac     :", ciphertext)
+
+	// remove 32 bytes of the HMAC-SHA256 tag
+	ciphertext = ciphertext[:len(ciphertext) - 32]
+	//log.Println(" | -pt         :", ciphertext)
+
+	return ciphertext
+}
+
 // the forwarder/parser
 func forwardTLS(r io.Reader, w io.Writer, label string) {
 	header := make([]byte, 5)
 
+	//
+	// FOR LOOP
+	//
 	for {
 		// read header
-		log.Println("---new_packet---")
+		log.Println("--- new packet from", label, "---")
+
 		read, err := io.ReadFull(r, header)
 		if err != nil {
 			// end of connection? connection closed?
@@ -142,14 +189,27 @@ func forwardTLS(r io.Reader, w io.Writer, label string) {
 			} else {
 				log.Printf("received err: %v", err)
 			}
+			server_encrypted = false
+			client_encrypted = false
+			handshake_step = 0
 			break
 		}
+
+		//log.Println(" | header", header)
+
+		payload_length := int(binary.BigEndian.Uint16(header[3:5]))
+		payload := make([]byte, payload_length)
+		//log.Println(" | payload length: ", payload_length)
+
 		if read != 5 {
 			log.Println("tcp: can't read header, read only ", read)
 		}
 
+		//
+		// PARSE HEADER
+		//
 		if header[0] == 0x16 {
-			log.Println("tls:handshake")
+			log.Println(" | tls:handshake")
 			// get version
 			/*
 			if version == nil {
@@ -157,21 +217,23 @@ func forwardTLS(r io.Reader, w io.Writer, label string) {
 			}
 */
 		} else if header[0] == 0x14 {
-			log.Println("tls:changeCipherSpec")
+			log.Println(" | tls:changeCipherSpec")
 			if label == "server" {
 				server_encrypted = true
 			} else {
 				client_encrypted = true
 			}
 		} else if header[0] == 0x17 {
-			log.Println("tls:application data")
+			log.Println(" | tls:application data")
 		} else if header[0] == 0x15 {
-			log.Println("tls:alert")
+			log.Println(" | tls:alert")
 		} else if header[0] == 0x18 {
-			log.Println("tls:heartbeat")
+			log.Println(" | tls:heartbeat")
 		} else {
+			//
 			// packet is not a TLS record (must be http?)
-			log.Println("tcp:PACKET IS NOT A TLS RECORD! ", header)
+			//
+			log.Println(" | tcp:PACKET IS NOT A TLS RECORD! ", header)
 
 			// read until \r or \n
 			buf := &bytes.Buffer{}
@@ -196,49 +258,26 @@ func forwardTLS(r io.Reader, w io.Writer, label string) {
 			continue
 
 		}
-		
-		// read the rest (only works for TLS records!)
-		payload_length := int(binary.BigEndian.Uint16(header[3:5]))
-		payload := make([]byte, payload_length)
 
-		log.Println("payload_length", payload_length)
-
+		//
+		// read the TLS payload
+		// 
 		_, err = io.ReadFull(r, payload)
 		if err != nil {
 			panic(err)
 		}
 
+		//log.Println(" | payload:")
+		//log.Println(" | ", payload)
+
 		// parse the record it's a handshake
 		if header[0] == 0x16 {
-			// are we encrypted? Probably finished
+			//
+			// Decrypt
+			//
 			if (label == "server" && server_encrypted) || (label == "client" && client_encrypted) {
-				// attempt to decrypt the record and check which key is correct
-
-				var relevant_key []byte
-
-				if label == "server" {
-					relevant_key = server_write_key
-
-				} else {
-					relevant_key = client_write_key
-				}
-
-				block, _ := aes.NewCipher(relevant_key)
-				
-				iv := payload[:16]
-				ciphertext := payload[16:]
-
-				if len(ciphertext) % 16 != 0 {
-					log.Println("size of ciphertext is not a multiple of 128bits")
-				} else {
-					mode := cipher.NewCBCDecrypter(block, iv)
-					mode.CryptBlocks(ciphertext, ciphertext)
-					log.Println("decrypted")
-					fmt.Println("%s\n", ciphertext)
-				}
-				
-				// do we need to do that :X ?
-			} else { // clear handshake
+				log.Println(" | encrypted handshake message")
+			} else { // PLAINTEXT handshake
 				offset := 0
 				for offset < len(payload) {
 					offset += parseTLSRecord(payload[offset:])
@@ -246,21 +285,30 @@ func forwardTLS(r io.Reader, w io.Writer, label string) {
 			}
 		}
 
-		if header[0] == 0x17 { // decrypt if we can
-			log.Println("encrypted content")
-			if label == "server" && server_write_key != nil {
-				log.Println("we have the server_write_key, we should be able to decrypt")
-			} else if label == "client" && client_write_key != nil {
-				log.Println("we have the client_write_key, we should be able to decrypt")
+		//
+		// Try decrypting the payload
+		//
+		if header[0] != 0x14 { // header[0] != 0x14 { // no ChangeCipherSPec
+			if (server_encrypted && label == "server" && server_write_key != nil) || (client_encrypted && label == "client" && client_write_key != nil) {
+				decrypted := decrypt(label, payload)
+				//log.Println(" | decrypted")
+				if header[0] == 0x17 {
+					//log.Printf(" | hex:  %x\n", decrypted)
+					log.Printf(" | string: %s\n", decrypted)
+				} else {
+					log.Printf(" | hex: %x\n", decrypted)
+				}
 			}
-
 		}
 
-		// write everything
+		//
+		// Write on the stream
+		//
 		_, err = w.Write(append(header, payload...))
 		if err != nil {
 			panic(err)
 		}
+		
 	} // endfor
 }
 
