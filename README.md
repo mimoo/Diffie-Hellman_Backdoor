@@ -2,12 +2,9 @@
 
 This repo contains some research I'm **currently** doing on how to bakdoor Diffie-Hellman:
 
-* ![backdoor_generator/](backdoor_generator/) everything to generate parameters for a DH backdoor
-* ![attack/](attack/) contains everything to generate the attack on both Socat and Apache2 (works on Socat only for now)
-* ![PoC.sage](PoC.sage) is a (now *old*) proof of concept (generation + small subgroup attack)
+* ![backdoor_generator/](backdoor_generator/) everything to generate and export parameters for a Diffie-Hellman backdoor
+* ![attack/](attack/) the setup to perform the Man-In-The-Middle attack on both Socat and Apache2 (works on Socat/OpenSSL only for now)
 * ![socat_reverse/](socat_reverse/) contains work on reversing the backdoor in the old 1024bits socat modulus and checking the security of the new 2048bits one.
-* ![estimations/](estimations/) hopefuly soon it will be full with estimations on Pohlig-Hellman and Pollard Rho
-* ![whitepaper.tex](whitepaper.tex) wannabe whitepaper
 
 Other repositories were created during this research:
 
@@ -18,30 +15,6 @@ Other repositories were created during this research:
 ## How to implement a NOBUS backdoor in DH
 
 There seem to be different ways, with different consequences, to do that. [backdoor_generator/backdoor_generator.sage](backdoor_generator/backdoor_generator.sage) allows you to generate backdoored DH parameters according to these different techniques, the explanations are in the source as well as the [README there](backdoor/README.md).
-
-![backdoor generator menu](http://i.imgur.com/ReNnJ7U.png)
-
-![backdoor generator result](http://i.imgur.com/klxlZpB.png)
-
-There is also a working proof of concept in [PoC.sage](PoC.sage) that implements one way of doing it: 
-
-It creates a non-prime modulus `p = p_1 * p_2` with `p_i` primes, such that
-`p_i - 1` are smooth. Since the order of the group will be `(p_1 - 1)(p_2 - 1)` (smooth) and known only to the malicious person who generated `p`, *Pohlig-Hellman* (passive) or a *Small Subgroup Confinment attack* (active) can be used to recover the private key.
-
-In the proof of concept the small subgroup attack is implemented instead of Pohlig-Hellman just because it seemed easier to code. They are relatively equivalent except that in practice an ephemeral key is used which makes small subgroup attacks not practical.
-
-Note that these issues should not arrise if the DH parameters were generated properly, that is the order and subgroups orders should be known. If the prime is a safe prime, you don't need to do anything. If it is not, it might be that the order of the group (`p-1`) is smooth, this is a bad idea but nonetheless you can verify that the public key received lies in the correct subgroup by raising it to the power of the subgroup. See [rfc2785](https://tools.ietf.org/html/rfc2785) for more information.
-
-![proof of concept](http://i.imgur.com/L7cNJP0.png)
-
-The proof of concept is a step by step explanation of what's happening. Above you can see the generation of the backdoored modulus, bellow you can see the attack tacking place and recovering discrete logs of each of the subgroups
-
-![discrete logs](http://i.imgur.com/kKgNjmh.png)
-
-To run it yourself you will need Sage. You can also use an online version of it a [cloud.sagemath.com](http://cloud.sagemath.com).
-
-
-## How is the attacker using the backdoor?
 
 Note: More info can be found in [backdoor_generator/README.md](backdoor_generator/README.md).
 
@@ -56,7 +29,6 @@ How does he compute the Discrete Logarithm?
 But there exists faster and easier to use algorithms that work in `O(sqrt(modulus))` like **Pollard Rho** or **Baby-Step-Giant-Step**. That means in a subgroup of prime order 64bits, these algorithms would compute a discrete logarithm in ~2^32 operations.
 
 Note: In our proof of concept [PoC.sage](PoC.sage), the subgroups are so small (<20bits) that the naive approach of testing all powers of the generator is fast enough to compute the discrete logarithm of all the subgroups.
-
 
 ## Resources
 
