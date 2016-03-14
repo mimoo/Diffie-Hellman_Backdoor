@@ -3,7 +3,7 @@
 This repo contains some research I'm **currently** doing on how to bakdoor Diffie-Hellman:
 
 * ![backdoor_generator/](backdoor_generator/) everything to generate parameters for a DH backdoor
-* ![attack/](attack/) contains everything to generate the attack on both Socat and Apache2 (still not fully working)
+* ![attack/](attack/) contains everything to generate the attack on both Socat and Apache2 (works on Socat only for now)
 * ![PoC.sage](PoC.sage) is a (now *old*) proof of concept (generation + small subgroup attack)
 * ![socat_reverse/](socat_reverse/) contains work on reversing the backdoor in the old 1024bits socat modulus and checking the security of the new 2048bits one.
 * ![estimations/](estimations/) hopefuly soon it will be full with estimations on Pohlig-Hellman and Pollard Rho
