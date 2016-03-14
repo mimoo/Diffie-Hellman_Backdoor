@@ -1,4 +1,7 @@
 import base64, pdb, sys, re, argparse
+from pyasn1.type import univ, namedtype, tag
+from pyasn1.codec.der import encoder
+
 
 #################################################################################
 # Helper functions
@@ -13,54 +16,30 @@ def int_to_bytearray(number):
   for ii in range(len(hexstring)//2):
     byte_array.append(int(hexstring[ii*2:ii*2+2], 16))
   return byte_array
-
-# [10, 11, 2] -> ["0A", "0B", "02"]
-def intarray_hexarray(intarray):
-  hexarray = []
-  for ii in intarray:
-    hexarray.append("%02X" % ii)
-  return hexarray
     
 #################################################################################
 # To asn1 (useful for openssl s_server -dhparam file_generated_by_this
 #################################################################################
 
 def to_asn1(modulus, generator):
-  # modulus -> asn1
-  modulus = int_to_bytearray(modulus)
-  modulus_length = len(modulus)
-  modulus_length = int_to_bytearray(modulus_length)
-  if len(modulus_length) > 1:
-    modulus_length = [0x82] + modulus_length
-  asn1 = [0x02] + modulus_length + modulus
-  
-  # generator -> asn1
-  generator = int_to_bytearray(generator)
-  generator_length = len(generator)
-  generator_length = int_to_bytearray(generator_length)
-  if len(generator_length) > 1:
-    generator_length = [0x82] + generator_length
-
-  asn1 = asn1 + [0x02] + generator_length + generator
-  # asn1 header
-  asn1_length = int_to_bytearray(len(asn1))
-  if len(asn1_length) > 1:
-    asn1_length = [0x82] + asn1_length  
-  asn1 = [0x30] + asn1_length + asn1
-  # write to file
-  asn1 = bytearray(asn1)
-
-  asn1b64 = base64.b64encode(asn1)
+  # -> asn1
+  asn1 = univ.SequenceOf(univ.Integer())
+  asn1.setComponentByPosition(0, modulus)
+  asn1.setComponentByPosition(1, generator)
+  # -> der
+  der = encoder.encode(asn1)
+  # -> b64
+  asn1b64 = base64.b64encode(der)
   dhparam = "-----BEGIN DH PARAMETERS-----\n"
   for ii in range(len(asn1b64) // 64):
     dhparam += asn1b64[ii*64:ii*64+64] + "\n"
   dhparam += asn1b64[ii*64+64:] + "\n"
   dhparam += "-----END DH PARAMETERS-----"
-
+  # ->
   return dhparam
 
 #################################################################################
-# To asn1 (useful for openssl s_server -dhparam file_generated_by_this
+# To go (useful for openssl s_server -dhparam file_generated_by_this
 #################################################################################
 
 def to_go(modulus, generator):
