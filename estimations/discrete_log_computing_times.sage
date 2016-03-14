@@ -36,6 +36,11 @@ def Pollard_rho_lambda_improved(public_key, order, generator, modulus):
     
     return 0
 
+def Pollard_rho_Sage(public_key, order, generator, modulus):
+    y = GF(modulus)(public_key)
+    g = GF(modulus)(generator)
+    return discrete_log_rho(y, g, ord=order)
+
 # Pollard Rho Lambda or Pollard Kangaroo for serial computers
 # http://math.boisestate.edu/~liljanab/Crypto2Spring10/PollardKangaroo.pdf
 def Pollard_kangaroo_serial(public_key, order, generator, modulus, b=0):
@@ -197,40 +202,41 @@ def setup(bitlevel, generator=2):
     return secret, public_key, modulus, q
 
 # run the test
-def test(bitsize, algo):
+def test(bitsize, algos):
     # init
     secret, public_key, modulus, order = setup(bitsize)
     generator = 2
 
-    # start timer
-    start_time = time.time()
-    secret_found = 0
-
-    # algo?
-    if algo == "trials":
-        secret_found = dumb_discrete_log(public_key, generator, modulus)
-    elif algo == "rho":
-        secret_found = Pollard_rho_tag_tracing(public_key, generator, modulus, order)
-    elif algo == "old_rho":
-        secret_found = Pollard_rho(public_key, order, generator, modulus)
-    elif algo == "rho_lambda":
-        secret_found = Pollard_kangaroo_serial(public_key, order, generator, modulus)
-
-    # end timer
-    delta = int(time.time() - start_time)
-
-    # display
-    if secret == secret_found:
-        print_table([str(bitsize) + "bits", algo, str(delta) + "s"])
-
-    else:
-        print "SECRET NOT FOUND, DEBUG INFO:"
-        print "* secret", secret
-        print "* secret_found", secret_found
-        print "* pubkey", public_key
-        print "* modulus", modulus
-        print "* g^secret", power_mod(generator, secret, modulus)
-        print "* g^found", power_mod(generator, secret_found, modulus)
+    # algos
+    for algo in algos:
+        # start timer
+        start_time = time.time()
+        secret_found = 0
+        # start algo
+        if algo == "trials":
+            secret_found = dumb_discrete_log(public_key, generator, modulus)
+        elif algo == "rho":
+            secret_found = Pollard_rho_tag_tracing(public_key, generator, modulus, order)
+        elif algo == "old_rho":
+            secret_found = Pollard_rho(public_key, order, generator, modulus)
+        elif algo == "rho_lambda":
+            secret_found = Pollard_kangaroo_serial(public_key, order, generator, modulus)
+        elif algo == "rho_sage":
+            secret_found = Pollard_rho_Sage(public_key, order, generator, modulus)
+        # end timer
+        delta = int(time.time() - start_time)
+        # display
+        if secret == secret_found:
+            print_table([str(bitsize) + "bits", algo, str(delta) + "s"])
+        else:
+            print "SECRET NOT FOUND, DEBUG INFO:"
+            print "* algo", algo
+            print "* secret", secret
+            print "* secret_found", secret_found
+            print "* pubkey", public_key
+            print "* modulus", modulus
+            print "* g^secret", power_mod(generator, secret, modulus)
+            print "* g^found", power_mod(generator, secret_found, modulus)
 
 ########################################################################
 # Tests
@@ -241,29 +247,15 @@ def main():
 
     print_table(["modulus bitsize", "DLOG algorithm", "time"], headers=True)
 
-    test(10, "trials") # <1s
-    test(10, "old_rho") # <1s
-    test(10, "rho_lambda") # <0s
+    test(10, ["trials", "old_rho", "rho_lambda", "rho_sage"])
 
-    test(20, "trials") # 1s
-    test(20, "old_rho") # <1s
-    test(20, "rho_lambda") # 6s
+    test(20, ["trials", "old_rho", "rho_lambda", "rho_sage"])
 
-    test(23, "trials") # 4s, 14s
-    test(23, "old_rho") # <1s
-    test(23, "rho_lambda") # 64s
+    test(30, ["old_rho", "rho_sage"])
 
-    #test(30, "trials") # 24m
-    test(30, "old_rho") # 1s, 2s, 1s, 0s
-    #test(30, "rho_lambda") # 
+    test(35, ["old_rho", "rho_sage"])
 
-    test(35, "old_rho") # 12s
-    
-    #test(40, "trials") # unknown (>1hour)
-    test(40, "old_rho") # 12s, 59s, 9s, 19s, 120s, 32s, 27s
-    #test(40, "rho_lambda") #
-
-    # test(50, "old_rho") # unknown >10min
+    test(40, ["old_rho", "rho_sage"])
     
 if __name__ == "__main__":
-    test()
+    main()
