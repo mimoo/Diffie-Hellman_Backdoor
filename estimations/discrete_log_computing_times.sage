@@ -124,11 +124,11 @@ def Pollard_rho(public_key, order, generator, modulus, a=0, b=0):
     
     # iteration function
     def iteration(x, a, b):
-        if Mod(x, 3) == 1: # x in S_1 (chosen from example)
+        if int(x) % 3 == 1: # x in S_1 (chosen from example)
             x = beta * x
             b = b + 1
 
-        elif Mod(x, 3) == 0: # x in S_2
+        elif int(x) % 3 == 0: # x in S_2
             x = x * x
             a = 2 * a
             b = 2 * b
@@ -246,7 +246,7 @@ def main():
     print "# Time to compute discrete logs"
 
     print_table(["modulus bitsize", "DLOG algorithm", "time"], headers=True)
-    """
+
     test(10, ["trials", "old_rho", "rho_lambda", "rho_sage"])
 
     test(20, ["trials", "old_rho", "rho_lambda", "rho_sage"])
@@ -256,8 +256,8 @@ def main():
     test(35, ["old_rho", "rho_sage"])
 
     test(40, ["old_rho", "rho_sage"])
-    """
-    test(50, ["rho_sage"])
+
+
     
 if __name__ == "__main__":
     main()
