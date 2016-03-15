@@ -246,7 +246,7 @@ def main():
     print "# Time to compute discrete logs"
 
     print_table(["modulus bitsize", "DLOG algorithm", "time"], headers=True)
-
+    """
     test(10, ["trials", "old_rho", "rho_lambda", "rho_sage"])
 
     test(20, ["trials", "old_rho", "rho_lambda", "rho_sage"])
@@ -256,6 +256,8 @@ def main():
     test(35, ["old_rho", "rho_sage"])
 
     test(40, ["old_rho", "rho_sage"])
+    """
+    test(50, ["rho_sage"])
     
 if __name__ == "__main__":
     main()

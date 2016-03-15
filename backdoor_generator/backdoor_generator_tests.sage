@@ -81,19 +81,13 @@ def test_method1():
     print "setting up done"
     
     # discrete log modulo p and q
-    yp = y % p
-    yq = y % q
-    # test
     yp = GF(p)(y)
     yq = GF(q)(y)
     gp = GF(p)(g)
     gq = GF(q)(g)
     xp = discrete_log_rho(yp, gp, ord=p_small)
     xq = discrete_log_rho(yq, gq, ord=q_small)
-    # test-end
-    #xp = Pollard_rho(yp, p_small, g, p)
     xp = int(xp)
-    #xq = Pollard_rho(yq, q_small, g, q)
     xq = int(xq)
 
     print "xp, xq found"
