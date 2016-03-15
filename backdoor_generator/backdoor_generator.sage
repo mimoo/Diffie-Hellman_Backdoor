@@ -180,6 +180,8 @@ def main():
     # run method
     if choice == 1:
         g, n, p, q, p_order, q_order = method1(1024, 30)
+    elif choice == 2:
+        g, n, p, q, factors = method2(1024, 20, 60)
 
 if __name__ == "__main__":
     main()
