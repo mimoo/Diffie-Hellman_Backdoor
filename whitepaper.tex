@@ -131,19 +131,40 @@ The algorithm that interests us here is Pollard Rho: it is fast in relatively sm
   g^{xa +b } = g^{xa' + b'} \pmod{p}&\\
   \implies x = (a-a')^{-1} (b' - b) \pmod{p-1}&
 \end{align*}
-The birthday paradox tells us that by looking for a random collision we can quickly find one in $\mathcal{O}(\sqrt{n})$. A random function is used to efficiently step through various $g^{xa + b}$ until two values repeat themselves, it is then straightforward to calculate $x$. Cycle-finding algorithms are used to avoid storing every iterations of the algorithm (Two different iterations of $g^{xa+b}$ are started and end up in a loop passed a certain step) and the technique of distinghuished points is used to parallelize the algorithm (paralleled machines only save and share particular iterations, for example iterations starting with a chosen number of zeros).
+The birthday paradox tells us that by looking for a random collision we can quickly find one in $\mathbb{O}(\sqrt{n})$. A random function is used to efficiently step through various $g^{xa + b}$ until two values repeat themselves, it is then straightforward to calculate $x$. Cycle-finding algorithms are used to avoid storing every iterations of the algorithm (Two different iterations of $g^{xa+b}$ are started and end up in a loop passed a certain step) and the technique of distinghuished points is used to parallelize the algorithm (paralleled machines only save and share particular iterations, for example iterations starting with a chosen number of zeros).
 
 \subsection{Pohlig-Hellman}
 
 In 1978, Pohlig and Hellman discovered a shortcut to the discrete logarithm problem\footnote{S. Pohlig and M. Hellman "\href{http://www-ee.stanford.edu/~hellman/publications/28.pdf}{An Improved Algorithm for Computing Logarithms over GF(p) and its Cryptographic Significance}"}\cite{PH}: if you know the complete factorization of the order of the group, and all of the factors are relatively small, then the discrete logarithm can be quickly computed.
 
-The idea is to find the value of the secret key $x$ modulo the divisors of the group's order by reducing the public key $y = g^x$ in subgroups of order dividing the group order. Thanks to the Chinese Remainder Theorem stated below, the secret key can then be reassembled in the group order.
+The idea is to find the value of the secret key $x$ modulo the divisors of the group's order by reducing the public key $y = g^x \pmod{n}$ in subgroups of order dividing the group order. Thanks to the Chinese Remainder Theorem (CRT) stated later, the secret key can then be reassembled in the group order. Summed up below is the full Pohlig-Hellman algorithm:
+
+\begin{enumerate}
+    \item Determine the prime factorization of the order of the group
+        $$\varphi(n) = \prod p_i^{k_i} $$
+    \item Determine the value of $x$ modulo $p_i^{k_i}$ for each $i$
+    \item Recompute $x \pmod{\varphi(n)}$ with the CRT
+\end{enumerate}
+
+The big trick of Pohlig-Hellman's algorithm is in how do we determine the value of the secret key $x$ modulo each factor $p_i^{k_i}$ of the order. One way of doing it is to try to reduce our public key to the subgroup we're looking at by computing:
+$$y^{\varphi(n)/p_i^{k_i}} \pmod{n}$$
+Computing the discrete logarithm of that value, we get $x \pmod{p_i^{k_i}}$. This works because of the following observation (note that $x$ can be written $x_1 + p_i^{k_i} x_2$ for some $x_1$ and $x_2$):
+\begin{align*}
+    y^{\varphi(n)/p_i^{k_i}} &= (g^{x})^{\varphi(n)/p_i^{k_i}} \pmod{n}\\
+    &= g^{(x) \varphi(n)/p_i^{k_i}} \pmod{n}\\
+    &= g^{(x_1 + p_i^{k_i} x_2) \varphi(n)/p_i^{k_i}} \pmod{n}\\
+    &= g^{x_1 \varphi(n)/p_i^{k_i}} g^{x_2 \varphi(n)} \pmod{n}\\
+    &= g^{x_1 \varphi(n)/p_i^{k_i}} \pmod{n}\\
+    &= g^{(\varphi/p_i^{k_i})^{x_1}}
+\end{align*}
+The value we obtain is a generator of the subgroup of order $p_i^{k_i}$ raised to the power $x_1$. By computing the discrete logarithm of this value, we will obtain $x_1$ which is the value of $x$ modulo $p_i^{k_i}$. Generally we will use Pollard Rho to do that.\\
+
+The Chinese Remainder Theorem, sometimes used for the good \footnote{ Shinde, Fadewar \href{http://www.techscience.com/doi/10.3970/icces.2008.005.255.pdf}{Faster RSA Algorithm for Decryption Using Chinese Remainder Theorem}}\cite{fasterRSA} will be of use here for the bad. The following theorem states why it is possible for us to find a solution to our problem once we found a solution modulo each power prime factor of the order.
 
 \begin{theorem}
 Suppose $m = \prod\limits^{k} m_i$ with $m_1, \cdots, m_k$ pairwise co-prime.\\
 
-For any $(a_1, \cdots, a_k)$ there exists a $x$ such that:\\
-
+For any $(a_1, \cdots, a_k)$ there exists a $x$ such that:
 $$
 \begin{cases}
 x= a_1 \pmod{m_1}\\
@@ -155,7 +176,7 @@ $$
 And there exist a unique solution for $x \pmod{m}$
 \end{theorem}
 
-There is a simple proof to that theorem which we will use to later reconstruct a $x \pmod{m}$ in the attack (note that I called the modulus $m$ so that you do not get any ideas that we will later use CRT with a DH modulus).
+There is a simple way to recover the $x \pmod{m} which we will use to later reconstruct the secret key modulo the order of the group.
 \begin{proof}
   \begin{align*}
       x &= \sum^{k} a_i * (\prod_{j \neq i} m_{j} \overline{m}_{j}) \pmod{m} \\
@@ -204,42 +225,33 @@ That's almost what we want! Half of what we want actually. We just need to do th
 \end{tikzpicture}\end{center}
 with $\overline{m}_2$ the integer congruent to $m_2^{-1} \pmod{m_1}$ and $\overline{m}_1$ the integer congruent to $m_1^{-1} \pmod{m_2}$.\\
 
-Everything works as we wanted! Now you should understand better how we came up with that general formula in the proof.
-
-Now the main idea of Pohlig-Hellman's method is in how do we determine the value of the secret key $x$ modulo each $p_i^{k_i}$. One way of doing it is to try to reduce our public key to the subgroup we're looking at by computing:
-$$y^{\varphi(n)/p_i^{k_i}} \pmod{n}$$
-Computing the discrete logarithm of that value, we get $x \pmod{p_i^{k_i}}$. This works because of the following observation (note that $x$ can be written $x_1 + p_i^{k_i} x_2$ for some $x_1$ and $x_2$):
-\begin{align*}
-    y^{\varphi(n)/p_i^{k_i}} &= (g^{x})^{\varphi(n)/p_i^{k_i}} \pmod{n}\\
-    &= g^{(x) \varphi(n)/p_i^{k_i}} \pmod{n}\\
-    &= g^{(x_1 + p_i^{k_i} x_2) \varphi(n)/p_i^{k_i}} \pmod{n}\\
-    &= g^{x_1 \varphi(n)/p_i^{k_i}} g^{x_2 \varphi(n)} \pmod{n}\\
-    &= g^{x_1 \varphi(n)/p_i^{k_i}} \pmod{n}\\
-    &= g^{(\varphi/p_i^{k_i})^{x_1}}
-\end{align*}
-The value we obtain is a generator of the subgroup of order $p_i^{k_i}$ raised to the power $x_1$. By computing the discrete logarithm of this value, we will obtain $x_1$ which is the value of $x$ modulo $p_i^{k_i}$.
-
-
-Summed up below is the full Pohlig-Hellman algorithm:
-
-\begin{enumerate}
-    \item Determine the prime factorization of the order of the group
-        $$\varphi(n) = \prod p_i^{k_i} $$
-    \item Determine the value of $x$ modulo $p_i^{k_i}$ for each $i$
-    \item Recompute $x \pmod{\varphi(n)}$ with the Chinese Remainder Theorem
-\end{enumerate}
+Everything works as we wanted! Now you should understand better how we came up with that general formula. There has been improvement to it with the Garner's algorithm but this method is so fast anyway that it is not the bottleneck of the whole attack.\todo{ref for garner}
 
 \subsection{Small Subgroup Attacks}
 
-\todo{explain the attack, say that it's usually hard to use}
+The attack we just visited is a passive attack: the knowledge of one Diffie-Hellman exchange between two parties is enough to obtain the following shared key. But instead of reducing one party's public key to an element of different subgroups, there is another clever attack called a small subgroup attack that creates the different subgroup generators directly and send them to one peer successively to obtain his private key. It is an active attack that doesn't work against certain ephemeral protocols that renew the Diffie-Hellman public key for every new key exchange. This is for example the case of certain implementations of TLS when using ephemeral Diffie-Hellman (DHE) as a key exchange during the handshake. This variant of Diffie-Hellman allows for \emph{Perfect Forward Secrecy}, a mode that protects against decryption of past and future communications in case the long-term private key is stolen.
 
-\section{A first backdoor attempt in prime groups}
+The attack is pretty straight forward and summed up below:
+
+\begin{enumerate}
+    \item Determine the prime factorization of the order of the group
+      $$\varphi(n) = \prod p_i^{k_i} $$
+    \item Find a generator for every subgroup of order $p_i^{k_i}$, this can be done by picking a random element $\alpha$ and computing
+      $$g = \alpha^{\frac{order}{p_i^{k_i}}}$$
+    \item Send generators one by one as your public keys in different key exchanges
+    \item Determine the value of $x$ modulo $p_i^{k_i}$ for each shared key computed
+    \item Recompute $x \pmod{\varphi(n)}$ with the CRT
+\end{enumerate}
+
+The fourth step can be done by having access to an Oracle telling you what is the shared key computed by the victim. In TLS this is done by brute-forcing the possible solutions and seeing which one has been used by the victim in his following encrypted messages (for example the MAC computation in the Finish message during the handshake). In this settings the attack would be weaker than Pohlig-Hellman since the brute-force is slower than Pollard Rho, or even trial multiplication. Because of the previous limitations and the fact that this attacks only works for rather small subgroups we won't use it in this work.
+
+\section{A First Backdoor Attempt in Prime Groups}
 
 The naive approach would be to weaken the parameters enough to make the computation of discrete logarithms affordable. Making the modulus a prime of a special form ($r^e + s$ with small $r$ and $s$) would facilitate the Special Number Field Sieve (SNFS) algorithm. Having a small modulus would also allow for easier pre-computation of the General Number Field Sieve (GNFS) algorithm. In [\todo{need ref}logjam] it is believed that the NSA has enough power to compute the first phases of GNFS on 1024bits prime which would then allow them to compute discrete logarithms in such large primes in the matter of seconds. But these ideas are pure computational advantages that involve no secret key to make the use of efficient backdoors possible. Moreover they are downright not practical: the attacker would have to re-do the pre-computing phase entirely for every different modulus, and the next generation of recommended modulus bitsize (2048+) would make these kind of computational advantages impossible. Another approach could be to use a generator of a smaller subgroup (without publishing what smaller subgroup we use) so that algorithms like Pollard Rho would be cost-effective again. But then algorithms like Pollard Kangaroo that run in the same amount of time as Pollard Rho and that do not need the knowledge of the base's order could be used as well by anyone. This makes it a poorly hidden backdoor that we cannot qualify as NOBUS.\\
 
 Our first contribution in section 4 makes both of these ideas possible by using a composite modulus. NFS/SNFS can then be used modulo the factors of the composite modulus, or the generator's subgroups can be concealed modulo the factors as well.\\
 
-A second idea would have been to smooth enable the requirement for the Pohlig-Hellman algorithm to work. This can be done by fixing a prime modulus $p$ such that $p-1$ is B-smooth \todo{definition of B-smooth, should include it in the previous section tho} with B small enough for discrete logarithms in bases of order B to be possible.\\
+A second idea would have been to create the requirements for the Pohlig-Hellman algorithm to work. This can be done by fixing a prime modulus $p$ such that $p-1$ is B-smooth \todo{definition of B-smooth, should include it in the previous section tho} with B small enough for discrete logarithms in bases of order B to be possible.\\
 
 \begin{center}
 \begin{tikzpicture}[scale=.55]
@@ -265,7 +277,7 @@ $\varphi(p) = p-1 = p_1 \times \cdots \times p_k$};
 \end{tikzpicture}
 \end{center}
 
-But this design is flawed in the same ways as the previous ones were: anyone can compute the order of the group ($p - 1$) and try to factor it. Anything below 300bits\todo{where does that number comes from?? show some ref} is relatively easy to factor using the \emph{Elliptic Curve Method} (ECM), a factorization algorithm which complexity only depends on the largest factor. This lower bound on the factors make it impossible for us to use our $\mathcal{O}(\sqrt{p-1})$ algorithm which would take more than $2^{150}$ operations to solve the discrete logarithm of such orders. \\
+But this design is flawed in the same ways as the previous ones were: anyone can compute the order of the group ($p - 1$) and try to factor it. Anything below 300bits\todo{where does that number comes from?? show some ref} is relatively easy to factor using the \emph{Elliptic Curve Method} (ECM), a factorization algorithm which complexity only depends on the largest factor. This lower bound on the factors make it impossible for us to use our $\mathbb{O}(\sqrt{p-1})$ algorithm which would take more than $2^{150}$ operations to solve the discrete logarithm of such orders. \\
 
 Our second contribution in section 5 uses a composite modulus to hide the smoothness of the order (CM-SO) as long as the modulus cannot be factored. This method is preferred from the first contribution as it might only need a change of modulus. For example, in many DH parameters or implementations, $g=2$ as a generator is often used. While our first contribution will not allow any easy ways to find a specific generator, our second method will.
 
@@ -330,8 +342,13 @@ $p$ and $q$ could be hand-picked as SNFS primes, or we could use GNFS to compute
 \end{tikzpicture}
 \end{center}
 
-Ah \todo{Should add a proof here that our solution works _all the time_, I think it's because we have many different solutions for the many values modulo $q_2$ and $p_2$, but the map is not injective} By reducing the discrete logarithm problem $y = g^x$ modulo $p$ and $q$ with our new backdoored generator, we can compute $x$ modulo $p-1$ and $q-1$ more easily and then recompute an equivalent secret key modulo $\frac{p-1}{2}(q-1)$. Another solution can be found by adding $\frac{p-1}{2}(q-1)$ to the integer representation of the previous solution. Since $p-1$ and $q-1$ are not coprime we cannot guess the original secret key, but this is usually enough as both found solutions will compute a valid Diffie-Hellman shared key by exponentiating the other peer's public key.\\
-
+By reducing the discrete logarithm problem $y = g^x$ modulo $p$ and $q$ with our new backdoored generator, we can compute $x$ modulo $p-1$ and $q-1$ more easily and then recompute an equivalent secret key modulo $(p-1)(q-1)$. This will find the original secret key with a probability of $\frac{1}{4p_2q_2}$ which is tiny, but it doesn't matter since the shared key we will compute with that solution and the other peer's public key will be the valid shared key. This is because of the following:
+\begin{proof}
+Let $a + k_ap_1q_1$ be Alice's public key for $k_a \in \mathbb{Z}$ and let $b + k_bp_1q_1$ be Bob's public key for $k_b \in \mathbb{Z}$,\\
+then Bob's shared key will be $(g^{a+k_ap_1q_1})^{b+k_bp_1q_1} = g^{ab} \pmod{n}$.\\
+Let $a + k_cp_1q_1$ be the solution we found for $k_c \in \mathbb{Z}$,\\
+then the shared key we will compute will be $(g^{b+k_bp_1q_1})^{a+k_cp_1q_1} = g^{ab}\pmod{n}$ which is the same as Bob's shared key.
+\end{proof}
 We used the Pollard Rho function in Sage 6.10 on a macbook pro with an i7 Intel Core @ 3.1GHz to compute discrete logarithms modulo safe primes of diverse bitsizes. The results are summed up in the table below.
 
 \begin{center}
@@ -344,7 +361,7 @@ We used the Pollard Rho function in Sage 6.10 on a macbook pro with an i7 Intel 
     50 bits & 34s \\
     \bottomrule
   \end{tabular*}
-  \end{center} 
+\end{center} 
 
 A stronger and more clever attacker would parallelize this algorithm on more powerful machines to obtain better numbers. To be able to exploit the backdoor ``live'' we want a running-time close to zero. Using 120 bits as our generator's order, someone no knowledge of the factorization of the modulus would take around $2^{60}$ operations to compute a discrete logarithm while this would take us on average $2^{31}$ thanks to the trapdoor.
 
@@ -393,7 +410,7 @@ From \href{http://cacr.uwaterloo.ca/hac/about/chap3.pdf}{Handbook of Applied Cry
     \begin{enumerate}
         \item if $1/2 \leq \alpha \leq 1$, then the probability that the largest prime factor of $n$ is $\leq x^{\alpha}$ is approximately $1+ ln(\alpha)$. Thus, for example, the probability than $n$ has a prime factor $> \sqrt(x)$ is $ln(2) \approx 0.69$
         \item The probability that the second-largest prime factor of $n$ is $\leq x^{0.2117}$ is about $1/2$. 
-        \item The expected total number of prime factors of $n$ is $ln ln x + \mathcal{O}(1)$. (If $n = \prod p_i^{e_i}$, the total number of prime factors of n is $\sum e_i$.)
+        \item The expected total number of prime factors of $n$ is $ln ln x + \mathbb{O}(1)$. (If $n = \prod p_i^{e_i}$, the total number of prime factors of n is $\sum e_i$.)
     \end{enumerate} 
 \end{definition}
 
@@ -477,18 +494,7 @@ Remainder Theorem}
 
 \appendix 
 
-\section{The Chinese Remainder Theorem}
-
-Along LLL, SAT solvers, the General Number Field Sieve, Pollard's Rho, the Euclidian algorithm... the \emph{Chinese Remainder Theorem} (CRT) is one of the magic tool of a cryptanalyst.
-
-This tool sometimes used for the good (RSA-CRT\footnote{ Shinde, Fadewar \href{http://www.techscience.com/doi/10.3970/icces.2008.005.255.pdf}{Faster RSA Algorithm for Decryption Using Chinese
-Remainder Theorem}}\cite{fasterRSA} is a construction where CRT is used to speed up RSA decryption) is also often used for the bad. But first let's see how it works:
-
-
-
 \section{Pohlig Hellman}
-
-Now what if we could use the Chinese Remainder Theorem to attack Diffie-Hellman? That must what have been thinking Stephen Pohlig and Martin Hellman when they designed their algorithm.\\
 
 One way of attacking Diffie-Hellman is to compute the discrete-logarithm $x$ of one of the peer's public keys $y = g^{x}$ modulo the modulus $n$ (here both $g$ and $n$ are fixed parameters). Let's take a closer look at the private exponent $x$. Euler's Totient Theorem states that:
 
@@ -505,19 +511,8 @@ So what if we could reduce the problem of finding $x \pmod{\varphi(n)}$ by findi
 Let $n$ be a composite integer. The discrete logarithm problem in $\mathbb{Z}^*_n$ polytime reduces to the combination of the integer factorization problem and the discrete logarithm problem in $\mathbb{Z}^*_p$ for each prime factor $p$ of $n$.
 \end{theorem}
 
-And the proof of the theorem is our attack: Pohlig-Hellman. It goes as follow:
-
-\begin{enumerate}
-    \item Determine the prime factorization of the order of the group
-        $$\varphi(n) = \prod p_i^{k_i} $$
-    \item Determine the value of $x$ modulo $p_i^{k_i}$ for each $i$
-    \item Recompute $x \pmod{\varphi(n)}$ with the Chinese Remainder Theorem
-\end{enumerate}
-
+%
 
 Note that in theory we can't reduce our public key to an element of a subgroup if we're already in a smaller group (we cannot "escape" or subgroup) or if we're in a subgroup that doesn't include the whole subgroup we're trying to get into. We cannot "escape" a group, we can only go deeper in a smaller subgroup already included in our group.
-
-To compute the discrete logarithm we can use algorithm such as Pollard's Rho, baby-step-giant-step or the Number Field Sieve for more bigger numbers.
-
 
 \end{document}
