@@ -92,6 +92,9 @@ def test_method1():
 
     print "xp, xq found"
 
+    # reconstructing x mod p_1 p_2
+    solt = xp * q_small * inverse_mod(q_small, p_small) + xq * p_small * inverse_mod(p_small, q_small)
+    
     # reconstruct x mod (p-1/2)(q-1)
     pp = (p-1)//2
     qq = q-1
@@ -102,10 +105,12 @@ def test_method1():
     # print solutions
     print "sol1    :", sol1
     print "sol2    :", sol2
+    print "solt    :", solt
     print "realx   :", x
     print "y       :", y
     print "g^sol1  :", power_mod(g, sol1, n)
     print "g^sol2  :", power_mod(g, sol2, n)
+    print "g^solt  :", power_mod(g, solt, n)
 
     """ Usually at this point we found different solutions,
     it doesn't matter because the shared key for both party will be the same
