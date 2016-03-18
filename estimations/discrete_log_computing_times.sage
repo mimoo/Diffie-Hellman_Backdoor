@@ -253,11 +253,13 @@ def main():
 
     test(30, ["old_rho", "rho_sage"])
 
-    test(35, ["old_rho", "rho_sage"])
+    test(35, ["rho_sage"])
 
-    test(40, ["old_rho", "rho_sage"])
+    test(40, ["rho_sage"])
 
+    test(45, ["rho_sage"])
 
+    test(50, ["rho_sage"])
     
 if __name__ == "__main__":
     main()
