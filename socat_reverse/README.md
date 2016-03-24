@@ -48,19 +48,19 @@ static unsigned char dh1024_p[] = {
 
 Passed to OpenSSL, this big number is read from left to right as the long hexstring. Passed through a primality test this is indeed a composite number.
 
-![prim1](http://i.imgur.com/nl3uo06.png)
+![prim1](http://i.imgur.com/S43lqCS.png)
 
 A natural question we could ask ourselves is that maybe the rogue commiter could have reversed the hexstring? Testing for that yielded a composite number as well.
 
-![prim1](http://i.imgur.com/nZPf2Sl.png)
+![prim1](http://i.imgur.com/d9Lc18Q.png)
 
 What if everything was reversed? Even inside the byte
 
-![prim1](http://i.imgur.com/d9Lc18Q.png)
+![prim1](http://i.imgur.com/nZPf2Sl.png)
 
 Another one, is that maybe the prime number was too long and thus truncated to 1024 bit (since the program was asking for a 1024 bit number). Indeed, the following number is a prime (but not a safe prime):
 
-![prim1](http://i.imgur.com/S43lqCS.png)
+![prim1](http://i.imgur.com/nl3uo06.png)
 
 It might comes as a shock to the non-enlightened, but we usually do not take the time to generate real primes, or what we more generally call *provable* primes. Efficient provable tests like ECPP or AKS do exists, but the accuracy and the speed of *probable* tests (tests that either tell you if a number is probably a prime, or definitely not a prime) are good enough that any margin of error is negligible.
 
