@@ -10,23 +10,23 @@ This is a pretty weird message with a [Juniper](http://forums.juniper.net/t5/Sec
 
 [Socat's README](http://www.dest-unreach.org/socat/doc/README) tells us that you can use their free software to setup an encrypted tunnel for data transfer between two peers.
 
-Looking at the commit logs you can see that they used a 512 bits Diffie-Hellman modulus until last year (2015) january when [it was replaced with a 1024 bits one](http://repo.or.cz/socat.git/commitdiff/281d1bd6515c2f0f8984fc168fb3d3b91c20bdc0).
+Looking at the commit logs you can see that they used a 512 bits Diffie-Hellman modulus until last year (2015) January when [it was replaced with a 1024 bits one](http://repo.or.cz/socat.git/commitdiff/281d1bd6515c2f0f8984fc168fb3d3b91c20bdc0).
 
 > Socat did not work in FIPS mode because 1024 instead of 512 bit DH prime is required. Thanks to Zhigang Wang for reporting and sending a patch.
 
-The person who pushed the commit is *Gerhard Rieger* who is the same person who fixed it a year later. In the comment he refers to an Oracle employee at the time who has yet to comment on his mistake. It also seems like his github account and his personnal websites were deleted the day this security advisory was published.
+The person who pushed the commit is *Gerhard Rieger* who is the same person who fixed it a year later. In the comment he refers to an Oracle employee at the time who has yet to comment on his mistake. It also seems like his github account and his personal websites were deleted the day this security advisory was published.
 
 This research's goal is to understand how this could possibly be a backdoor. And more particularly, a [Nobody-but-us](https://en.wikipedia.org/wiki/NOBUS) one (*NOBUS*). Here are the objectives of this research:
 
 * Build a  [proof of concept](PoC.sage) of such a NOBUS backdoor
-* check if we can reverse the socat backdoor to use it ourselve
+* check if we can reverse the socat backdoor to use it ourselves
 * Try to answer the question: "does it look like a backdoor?"
 
 ## Human error
 
 Before shouting from the rooftops the words "backdoor", let's take a step back and imagine what could have gone wrong. First, it is possible that ![the poor man who suggested the change](http://repo.or.cz/socat.git/commitdiff/281d1bd6515c2f0f8984fc168fb3d3b91c20bdc0) (back then an *Oracle* employee) had no idea that the DH modulus should be a prime. In fact, Diffie-Hellman works well enough with composite modulus (but keep in mind that it has its share of problems, and we will see later why). Also, what if he did generated a prime but got lost afterwards?
 
-(The employee also closed his github account and personnal website the day the advisory was published).
+(The employee also closed his github account and personal website the day the advisory was published).
 
 Throughout TLS, and in Socat's case throughout OpenSSL, the use of *big endianness* is enforced for long numbers formatting. That is: you read a byte string from left to right to convert it to a number. This can make the process of converting from and to numbers a confusing task.
 
@@ -50,7 +50,7 @@ Passed to OpenSSL, this big number is read from left to right as the long hexstr
 
 ![prim1](http://i.imgur.com/S43lqCS.png)
 
-A natural question we could ask ourselves is that maybe the rogue commiter could have reversed the hexstring? Testing for that yielded a composite number as well.
+A natural question we could ask ourselves is that maybe the rogue committer could have reversed the hexstring? Testing for that yielded a composite number as well.
 
 ![prim1](http://i.imgur.com/d9Lc18Q.png)
 
