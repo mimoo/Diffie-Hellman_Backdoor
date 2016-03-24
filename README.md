@@ -1,10 +1,10 @@
 # How to backdoor Diffie-Hellman
 
-This repo contains some research I'm **currently** doing on how to bakdoor Diffie-Hellman:
+This repo contains some research I'm **currently** doing on how to backdoor Diffie-Hellman:
 
-* ![backdoor_generator/](backdoor_generator/) contains everything to generate and export parameters for a Diffie-Hellman backdoor.
-* ![attack/](attack/) contains the setup to perform the Man-In-The-Middle attack on TLS (tested on Socat/OpenSSL so far).
-* ![socat_reverse/](socat_reverse/) contains work on reversing the "backdoor" discovered in Socat in February 2016.
+* [backdoor_generator/](backdoor_generator/) contains everything to generate and export parameters for a Diffie-Hellman backdoor.
+* [attack/](attack/) contains the setup to perform the Man-In-The-Middle attack on TLS (tested on Socat/OpenSSL so far).
+* [socat_reverse/](socat_reverse/) contains work on reversing the "backdoor" discovered in Socat in February 2016.
 
 Other repositories were created during this research:
 
