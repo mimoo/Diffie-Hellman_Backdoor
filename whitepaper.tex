@@ -119,7 +119,7 @@ In the OpenSSL address implementation the hard coded 1024 bit DH p parameter was
 
 \section{Attacks on Diffie-Hellman and the Discrete Logarithm}
 
-To attack a Diffie-Hellman key exchange, the attacker needs to compute the secret key $a$ of one of the peer's public key $y_a = g^a \pmod{n}$. He can then compute the shared key $g^{ab} \pmod{n}$ using the other peer's public key $y_b = g^b \pmod{n}$.\\
+To attack a Diffie-Hellman key exchange, the attacker needs to extract the secret key $a$ from one of the peer's public key $y_a = g^a \pmod{n}$. He can then compute the shared key $g^{ab} \pmod{n}$ using the other peer's public key $y_b = g^b \pmod{n}$.\\
 
 The naive way to go about this is to compute each power of $g$ (while tracking the exponent) until the public key is found. This is called \emph{trial multiplication} and would need on average $\frac{n}{2}$ operations to find a solution.
 More efficiently, algorithms that compute discrete logarithm in expected $\sqrt{q}$ steps (with $q$ the order of the base) like Baby-step-giant-step (deterministic), Pollard rho or Pollard Kangaroo (both probabilistic) can be used. Because of the space required for Baby-step-giant-step, Pollard's algorithms are often preferred. While both are parallelizable, Kangaroo is used when the order is unknown or known to be in a small interval. For bigger groups the Index Calculus or other Number Field Sieve (NFS) algorithms are the most efficients. But so far, computing a discrete logarithm in polynomial time on a classical computer is still an open problem.\\
@@ -146,7 +146,7 @@ The idea is to find the value of the secret key $x$ modulo the divisors of the g
     \item Recompute $x \pmod{\varphi(n)}$ with the CRT
 \end{enumerate}
 
-The big trick of Pohlig-Hellman's algorithm is in how do we determine the value of the secret key $x$ modulo each factor $p_i^{k_i}$ of the order. One way of doing it is to try to reduce our public key to the subgroup we're looking at by computing:
+The ruse of Pohlig-Hellman's algorithm is in how do we determine the value of the secret key $x$ modulo each factor $p_i^{k_i}$ of the order. One way of doing it is to try to reduce our public key to the subgroup we're looking at by computing:
 $$y^{\varphi(n)/p_i^{k_i}} \pmod{n}$$
 Computing the discrete logarithm of that value, we get $x \pmod{p_i^{k_i}}$. This works because of the following observation (note that $x$ can be written $x_1 + p_i^{k_i} x_2$ for some $x_1$ and $x_2$):
 \begin{align*}
@@ -176,7 +176,7 @@ $$
 And there exist a unique solution for $x \pmod{m}$
 \end{theorem}
 
-There is a simple way to recover the $x \pmod{m} which we will use to later reconstruct the secret key modulo the order of the group.
+There is a simple way to recover the $x \pmod{m}$ which we will use to later reconstruct the secret key modulo the order of the group.
 \begin{proof}
   \begin{align*}
       x &= \sum^{k} a_i * (\prod_{j \neq i} m_{j} \overline{m}_{j}) \pmod{m} \\
@@ -352,28 +352,31 @@ then the shared key we will compute will be $(g^{b+k_bp_1q_1})^{a+k_cp_1q_1} = g
 We used the Pollard Rho function in Sage 6.10 on a macbook pro with an i7 Intel Core @ 3.1GHz to compute discrete logarithms modulo safe primes of diverse bitsizes. The results are summed up in the table below.
 
 \begin{center}
-  \begin{tabular*}{\columnwidth-2cm}{@{} c  @{\extracolsep{\fill}} c @{}}
+  \begin{tabular*}{\columnwidth}{@{} c  @{\extracolsep{\fill}} cc @{}}
     \toprule
-    order bitsize & running time \\
+    order size & expected complexity & time \\
     \midrule
-    40 bits & 1s \\
-    45 bits & 4s \\
-    50 bits & 34s \\
+    40 bits & 2^{20} & 01s \\
+    45 bits & 2^{22} & 04s \\
+    50 bits & 2^{25} & 34s \\
     \bottomrule
   \end{tabular*}
 \end{center} 
 
-A stronger and more clever attacker would parallelize this algorithm on more powerful machines to obtain better numbers. To be able to exploit the backdoor ``live'' we want a running-time close to zero. Using 120 bits as our generator's order, someone no knowledge of the factorization of the modulus would take around $2^{60}$ operations to compute a discrete logarithm while this would take us on average $2^{31}$ thanks to the trapdoor.
+A stronger and more clever attacker would parallelize this algorithm on more powerful machines to obtain better numbers. To be able to exploit the backdoor ``live'' we want a running-time close to zero. Using a 80 bits integer as our generator's order, someone with no knowledge of the factorization of the modulus would take around $2^{40}$ operations to compute a discrete logarithm while this would take us on average $2^{21}$ thanks to the trapdoor. A more serious adversary with a higher computation power and a care for security might want to choose a 200 bits integer as the generator's order. For that he would need to be able to perform $2^{50}$ operations instantaneously if he would want to tamper with the encrypted communications following the key exchange, while an outsider would have to perform an ``impossible'' number of $2^{100}$ operations.
 
-Another problem is that by choosing a modulus of this form, it will be close to impossible to find a fixed generator respecting these properties. The probability that an element in a group of order $q$ is the generator of a subgroup of order $d$ is $\frac{d}{q}$.
-
-This means that for example, if we want a generator $g=2$ (which is the default hardcoded Diffie-Hellman parameter of many implementations), we would need to generate many modulus hopping that particular generator would work. The probability that it would work each time would be :
+A problem here is that by choosing a modulus of this form, it will be close to impossible to find a fixed generator respecting these properties. The probability that an element in a group of order $q$ is the generator of a subgroup of order $d$ is $\frac{d}{q}$. This means that for example, if we want a generator $g=2$ (which is the default hardcoded Diffie-Hellman parameter of many implementations), we would need to generate many modulus hopping that particular generator would work. The probability that it would work each time would be :
 
 $$\frac{p_1 p_2}{(p-1)(q-1)} \sim \frac{1}{pq} = \frac{1}{n} $$
 
 This is obviously too small of a probability for us to try to generate many parameters until one admits $g=2$ as a generator of our ``small'' subgroup. This is a problem if we want to replace secure values with our backdoored values, changing only one value (the modulus) would be more subtle than changing two values (the modulus and the generator). Our next contribution solves this problem.
 
+\todo{I should note that I can't use more than n=pq two primes, otherwise it gets too low and it's factorable, it should be treated like RSA}
+
 \section{A Composite Modulus for a NOBUS Backdoor with a B-Smooth Order (CM-SO)}
+
+p-1 B2 is 10^15 ~ 50bits number
+so we need to use the large factor at 
 
 \todo{diagrams}
 
@@ -391,7 +394,7 @@ At the start of a new \emph{handshake}, both the server and the client will send
 
 \subsection{Exploitation}
 
-bla
+As any attack on TLS, we need first to obtain a Man-In-The-Middle position on between the client and the server.
 
 \todo{explain handshake, server.random, premasterkeys, etc...}
 

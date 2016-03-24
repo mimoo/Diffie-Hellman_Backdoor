@@ -28,7 +28,7 @@ class cc:
 # Methods
 ################################################################# 
 
-# method 1 helper
+# CM_HDSS helper
 # prime p - 1 = 2 * p_1 * p_2 -> returns p, p_1
 def subgroup_prime(prime_size, small_factor_size):
     """ generate a prime `p` s.t. `p - 1 = 2 * small_factor * large_factor`
@@ -52,8 +52,8 @@ def subgroup_prime(prime_size, small_factor_size):
     #
     return p, small_factor
 
-# n = pq s.t. p,q "partially-smooth"-primes and g generates the smooth part modulo p and q
-def method1(modulus_size, subgroup_size):
+# Composite Modulus Hidden Small Subgroup
+def CM_HDSS(modulus_size, subgroup_size):
     """ n = p * q, s.t. p-1 and q-1 are of the form
     2 * small_factor * large_factor
     the generator g mod p and mod q lies in the small subgroup
@@ -80,8 +80,7 @@ def method1(modulus_size, subgroup_size):
     #
     return g, n, p, q, p_order, q_order
 
-# method 2 helper
-
+# CM_HSO helper
 def B_smooth(total_size, small_factors_size, big_factor_size):
     """ Just picking at random should be enough, there is a very small probability
     we will pick the same factors twice
@@ -107,12 +106,23 @@ def B_smooth(total_size, small_factors_size, big_factor_size):
         prime_test = smooth_prime * last_prime + 1
 
     factors.append(last_prime)
-    smooth_prime *= last_prime
+    smooth_prime = smooth_prime * last_prime + 1
 
     return smooth_prime, factors
 
-# n = pq s.t. p-1,q-1 B-smooth with B large enough
-def method2(modulus_size, small_factors_size, big_factor_size):
+# recursive function to find the order of a base g
+def find_order(g, order, modulus, factors):
+    for index, factor in enumerate(factors):
+        # if one factor is not part of the order we descend
+        if power_mod(g, order//factor, modulus) == 1:
+            new_factors = list(factors)
+            new_factors.pop(index)
+            return find_order(g, order//factor, modulus, new_factors)
+    # all factors are part of the order
+    return order, factors
+
+# Composite Modulus Hidden Smooth Order
+def CM_HSO(modulus_size, small_factors_size, big_factor_size, generator=0):
     """ n = p * q, s.t. p-1 and q-1 are B-smooth (for Pohlig-Hellman)
     with B large enough to counter Pollard's p-1 factorization algorithm
     latest records of Pollard's p-1 used B = 10^15 (~50bits)
@@ -127,39 +137,57 @@ def method2(modulus_size, small_factors_size, big_factor_size):
     modulus = p * q
 
     # the order of the generator we ideally want
-    order = 1
-    for factor in factors[1:]: # we get rid of the first 2 (lcm)
-        order *= factor
+    order = (p-1)*(q-1)
 
-    # find a generator
-    g = 2
-    is_generator = False
-    while not is_generator:
-        is_generator = True
-        for factor in factors[1:]:
-            # we want all of the factors to be a part of the order
-            if power_mod(g, order//factor, modulus) == 1: 
-                g = randint(2, modulus - 1)
-                is_generator = False
-                break
+    # find a random generator
+    if generator == 0:
+        gp = GF(p).multiplicative_generator()
+        gq = GF(q).multiplicative_generator()
+        g = CRT(int(gp), int(gq), p, q)
+        order, factors = find_order(g, order, modulus, factors)
+    # use a specific generator
+    else:
+        g = generator
+        factors = factors[1:] # remove the first 2 (lcm)
+        order, factors = find_order(g, order, modulus, factors)
+
+    # split order
+    p_order = order % (p-1)
+    q_order = order % (q-1)
+
+    if p_order == 0:
+        p_order = p-1
+    if q_order == 0:
+        q_order = q-1
+
+    # split factors
+    if p_order != p-1 or q_order != q-1:
+        p_factors, q_factors = [], []
+        for factor in factors:
+            if p-1 % factor == 0:
+                p_factors.append(factor)
+            if q-1 % factor == 0:
+                q_factors.append(factor)
 
     # print
     print "modulus          =", modulus
     print "bitlength        =", len(bin(modulus)) - 2
-    print "p, q             =", p, ", ", q
-    print "factors          =", factors
+    print "p, q             =", p, ",", q
+    print "p_order          =", p_order
+    print "q_order          =", q_order
+    print "p_factors        =", p_factors
+    print "q_factors        =", q_factors
     print "generator        =", g
 
     # ->
     return g, modulus, p, q, factors
-
 
 ################################################################# 
 # Main menu
 ################################################################# 
 
 menu = [
-    "composite modulus with partially smooth order",
+    "composite modulus with hidden subgroup",
     "composite modulus with B-smooth order"
         ]
 
@@ -179,12 +207,13 @@ def main():
 
     # run method
     if choice == 1:
-        g, n, p, q, p_order, q_order = method1(1024, 30)
+        g, n, p, q, p_order, q_order = CM_HSS(1024, 30)
     elif choice == 2:
-        g, n, p, q, factors = method2(1024, 20, 60)
+        g, n, p, q, factors = CM_HSO(1024, 20, 40, 2)
 
 if __name__ == "__main__":
     main()
 else:
-    method2(1024, 20, 60)
+    g, n, p, q, factors = CM_HSO(1024, 20, 40, 2)
+
 
