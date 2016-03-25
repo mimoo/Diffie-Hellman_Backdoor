@@ -46,21 +46,20 @@ static unsigned char dh1024_p[] = {
 };
 ```
 
-Passed to OpenSSL, this big number is read from left to right as the long hexstring. Passed through a primality test this is indeed a composite number.
+**Update** from Samuel Nieves, "interpreting the modulus bytes as 16-bit words in little-endian order does get us a prime":
 
-![prim1](http://i.imgur.com/S43lqCS.png)
+```
+3c6d8e07b9ec437a4177a6c5efbc95994aaf1246780e7d17
+4d7f75538ecebfabf5af04f66d4f37f086734a0b046928ac
+bdbb8f7a43c8d38df5f890a8d66dfc00c6058e9908c6609b
+03bff987e840bc0ecbbfc857cbc822bf941c9259255f5b22
+cea945a2d8a91694b3bfa7bcc1cee388550cb8263e0e46c5
+59a496dff2dccc17
+```
 
-A natural question we could ask ourselves is that maybe the rogue committer could have reversed the hexstring? Testing for that yielded a composite number as well.
+This is indeed a prime! But **not a safe prime**!
 
-![prim1](http://i.imgur.com/d9Lc18Q.png)
-
-What if everything was reversed? Even inside the byte
-
-![prim1](http://i.imgur.com/nZPf2Sl.png)
-
-Another one, is that maybe the prime number was too long and thus truncated to 1024 bit (since the program was asking for a 1024 bit number). Indeed, the following number is a prime (but not a safe prime):
-
-![prim1](http://i.imgur.com/nl3uo06.png)
+## Probable primes
 
 It might comes as a shock to the non-enlightened, but we usually do not take the time to generate real primes, or what we more generally call *provable* primes. Efficient provable tests like ECPP or AKS do exists, but the accuracy and the speed of *probable* tests (tests that either tell you if a number is probably a prime, or definitely not a prime) are good enough that any margin of error is negligible.
 
@@ -70,11 +69,10 @@ For example in ![Openssl's `BN_is_prime_fasttest_ex()` function](https://www.ope
 
 > Numbers that fool the Fermat test are called Carmichael numbers, and little is known about them other than that they are extremely rare. There are 255 Carmichael numbers below 100,000,000. The smallest few are 561, 1105, 1729, 2465, 2821, and 6601. In testing primality of very large numbers chosen at random, the chance of stumbling upon a value that fools the Fermat test is less than the chance that cosmic radiation cosmic radiation will cause the computer to make an error in carrying out a "correct" algorithm. Considering an algorithm to be inadequate for the first reason but not for the second illustrates the difference between mathematics and engineering.
 
-This is to say: the Oracle developer probably didn't intend to generate a prime.
+There are ways to *maliciously* generate such fake primes, [here's a paper on it](www.jointmathematicsmeetings.org/mcom/1995-64-209/S0025-5718-1995-1260124-2/S0025-5718-1995-1260124-2.pdf), but this only works on the deterministic version of the Rabin Miller test. To test Rabin Miller you can take random bases OR you can always run it with the same set of bases (which is the deterministic version of the test). They show that you can choose a number n = p * q, where p and q are somehow related and they will pass the test for every base b if b is coprime to p and b is a square modulo q.
+As I said this method works if you know in advance the bases that will be used (which is rarely the case I suppose). Also it seems like you are really limited in the number of witness you fool, but this is an old paper and we might be able to do better now.
 
 ## How to reverse socat's non-prime modulus
-
-from what we learned in implementing such a backdoor, we will see how we can reverse it to use it ourselves.
 
 **Trial division** (testing every small primes up to a certain limit) has already found two small factors: 271 and 13,597. The last factor is still a composite of 1002 bits (302  digits) that we'll call C302 (C for Composite).
 
@@ -138,6 +136,7 @@ Step 2 took 1429277ms
 ```
 
 A saved run of ECM `ecm -pm1 1e10 1e15` that lasted 10 days can be found here: [saved_ecm_run](saved_ecm_run)
+
 ## P-1
 
 I didn't save the previous run, although it found nothing. currently running with B1 = 10^12 which might be way too big. Will post the seed once done.
