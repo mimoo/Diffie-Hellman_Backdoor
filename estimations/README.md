@@ -30,9 +30,8 @@ These are the current tests, done on a last generation MacBook Pro.
 | 45                  | rho_sage       | 20       |
 | 50                  | rho_sage       | 146      |
 
-Simply trying everything is fast enough up to around 23bits. Then it takes minutes. The first generation Pollard Rho works extremly well under 40bits.
+Sage's Pollard Rho function is extremly fast up to 40bits.
 
-* I'm hoping Pollard Rho lambda and newer optimizations could improve this.
 
-* Also writing that in Go would be **COOL** + maybe faster?
+
 
