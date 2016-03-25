@@ -156,7 +156,7 @@ def test_CM_HSO(small=True):
 
     # setup public/private key
     #x = randint(2, n-1)
-    x = 10158765805698842059975984071234248844298026000114333444935461394391907940690012515457612454216052557973931234368572956888753052673325921139445731419491194361879419848813179222618931
+    x = 4817034466461656712989712580568214099011799420538973921108826994602093266436805674253624050590577887277476864714983747326457488973355627120789852444111929890467536361533480563345437791281438614990540796546232236540151436950115834285261771986791659968799812073717576564720432045430781778398639542
     y = power_mod(g, x, n)
 
     # Pohlig-Hellman in (p-1)/2
@@ -184,7 +184,7 @@ def test_CM_HSO(small=True):
     xq = 0
     xq_mod = 1
 
-    for order in q_factors[1:]: # removes 2
+    for order in q_factors: # we need the 2
         print "attempting pollard rho in subgroup of order", order
         # reduce the problem
         new_problem = power_mod(yq, (q-1)//order, q)
@@ -200,22 +200,16 @@ def test_CM_HSO(small=True):
         xq_mod *= order
 
     # CRT
-    #xx = CRT(xp, xq, xp_mod, xq_mod)
     xx = CRT(xp, xq, xp_mod, xq_mod)
 
-    print "x", x
-    print "xx", xx
-    print "yy", power_mod(g, xx, n)
-    print "y", y
-    x2 = CRT(xx, 1, xp_mod*xq_mod, 2)
-    print "x2", 
-    print "y2", power_mod(g, x2, n)
+    # check shared keys
+    print "* real secret:", x
+    print "* found secret  :", xx
 
-    # the important stuff
-    print (xx - x) % ((p-1)*(q-1)//4) # this one is 0 for sure
-    print (xx - x) % ((p-1)*(q-1)//2) # why is this one 0...?? should be 0 one out of 2 times
-
-    pdb.set_trace()
+    if x == xx:
+        print cc.OKGREEN + "WE ARE ALL GOOOD :))))" + cc.END
+    else:
+        print cc.WARNING + "WE ARE NOT GOOOD :((((" + cc.END
         
 ################################################################# 
 # Main menu
