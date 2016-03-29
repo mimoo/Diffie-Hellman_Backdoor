@@ -113,7 +113,7 @@ On February the 1st 2016, only a few months after Juniper's debacle, \emph{Socat
 In the OpenSSL address implementation the hard coded 1024 bit DH p parameter was not prime. The effective cryptographic strength of a key exchange using these parameters was weaker than the one one could get by using a prime p. Moreover, since there is no indication of how these parameters were chosen, the existence of a trapdoor that makes possible for an eavesdropper to recover the shared secret from a key exchange that uses them cannot be ruled out.
 \end{displayquote}
 
-\todo{this is irrelevant, change that part}In the same vein of Juniper's problem, a single number was changed. But Socat's problems root deeper. A year before that suspicious 1024 bit Diffie-Hellman (DH) value was introduced, the free software would have served its TLS connection using a 512 bit DH modulus. The problem with such small DH parameters is already well known \cite{logjam}, in the paper the authors point out that most servers use common Diffie-Hellman parameters to generate their ephemeral Diffie-Hellman key exchanges, they point that the problem is that they are 1024bits which the NSA might be able to crack. This initiated a debate on how users should use Diffie-Hellman, should they generate their own DH parameters or use predefined parameters that RFC \todo{list the rfc with the DH groups} or libraries use by default? The problem of implementing DH securely are unfortunately rarely well understood as well. The defense approach is told in several RFCs \cite{rfc2631} \cite{rfc2785}, but no paper so far take the point of view of the attacker.\\
+\todo{this is irrelevant, change that part. Also I should explain here that DHE is interesting to backdoor because unlike RSA, DH, ECDH, ... people use the default parameters of libraries/products and don't generate their own in a certificate}In the same vein of Juniper's problem, a single number was changed. But Socat's problems root deeper. A year before that suspicious 1024 bit Diffie-Hellman (DH) value was introduced, the free software would have served its TLS connection using a 512 bit DH modulus. The problem with such small DH parameters is already well known \cite{logjam}, in the paper the authors point out that most servers use common Diffie-Hellman parameters to generate their ephemeral Diffie-Hellman key exchanges, they point that the problem is that they are 1024bits which the NSA might be able to crack. This initiated a debate on how users should use Diffie-Hellman, should they generate their own DH parameters or use predefined parameters that RFC \todo{list the rfc with the DH groups} or libraries use by default? The problem of implementing DH securely are unfortunately rarely well understood as well. The defense approach is told in several RFCs \cite{rfc2631} \cite{rfc2785}, but no paper so far take the point of view of the attacker.\\
 
 \todo{redo all that part}In section 2, we will first discard some possible mistakes that the troublemaker could have made. In section 3 we will introduce the different attacks available on DH, from small subgroup attacks to Pohlig Hellman's algorithm. We will start by explaining how to implement a NOBUS backdoor in Diffie-Hellman in section 4, and we will follow with the bulk of our contribution in section 5: that is the different methods to achieve that goal. In section 6 we will see what's wrong with the previous methods, and use what we learned from that to try to reverse Socat's 1024 bit DH modulus. Informationally, we will test the security of the new 2048 bit DH modulus of Socat in section 7, and follow by brief explanations on how to secure a DH implementation. Eventually we will wrap it all in section 9.
 
@@ -247,11 +247,28 @@ The fourth step can be done by having access to an Oracle telling you what is th
 
 \section{A First Backdoor Attempt in Prime Groups}
 
-The naive approach would be to weaken the parameters enough to make the computation of discrete logarithms affordable. Making the modulus a prime of a special form ($r^e + s$ with small $r$ and $s$) would facilitate the Special Number Field Sieve (SNFS) algorithm. Having a small modulus would also allow for easier pre-computation of the General Number Field Sieve (GNFS) algorithm. In [\todo{need ref}logjam] it is believed that the NSA has enough power to compute the first phases of GNFS on 1024bits prime which would then allow them to compute discrete logarithms in such large primes in the matter of seconds. But these ideas are pure computational advantages that involve no secret key to make the use of efficient backdoors possible. Moreover they are downright not practical: the attacker would have to re-do the pre-computing phase entirely for every different modulus, and the next generation of recommended modulus bitsize (2048+) would make these kind of computational advantages impossible. Another approach could be to use a generator of a smaller subgroup (without publishing what smaller subgroup we use) so that algorithms like Pollard Rho would be cost-effective again. But then algorithms like Pollard Kangaroo that run in the same amount of time as Pollard Rho and that do not need the knowledge of the base's order could be used as well by anyone. This makes it a poorly hidden backdoor that we cannot qualify as NOBUS.\\
+The naive approach would be to weaken the parameters enough to make the computation of discrete logarithms affordable. Making the modulus a prime of a special form ($r^e + s$ with small $r$ and $s$) would facilitate the Special Number Field Sieve (SNFS) algorithm. Having a small modulus would also allow for easier pre-computation of the General Number Field Sieve (GNFS) algorithm. In [\todo{need ref}logjam] it is believed that the NSA has enough power to achieve the first pre-computing phases of GNFS on 1024bits prime which would then allow them to compute discrete logarithms in such large primes in the matter of seconds. But these ideas are pure computational advantages that involve no secret key to make the use of efficient backdoors possible. Moreover they are downright not practical: the attacker would have to re-do the pre-computing phase entirely for every different modulus, and the next generation of recommended modulus bitsize (2048+) would make these kind of computational advantages fruitless. Another approach could be to use a generator of a smaller subgroup (without publishing what smaller subgroup we use) so that algorithms like Pollard Rho would be cost-effective again.
 
-Our first contribution in section 4 makes both of these ideas possible by using a composite modulus. NFS/SNFS can then be used modulo the factors of the composite modulus, or the generator's subgroups can be concealed modulo the factors as well.\\
+\begin{center}
+\begin{tikzpicture}[scale=.55]
+% main formula
+  \node (order) {$\varphi(p) = p-1 = $};
+  \node (small) [draw,right=0cm of order] {$p_1$};
+  \node [right=0cm of small] {$\times \cdots \times p_k$};
+  % first line
+  \node (g) [below=.9cm of small, align=left] {$g^x$};
+  \node [left=-.1cm of g] {$y=$};
+  \node [right=-.3cm of g] {$\pmod{p}$};
+% arrows
+\draw [->] (g) -- (small) node [midway,right] {order};
+\end{tikzpicture}
+\end{center}
 
-A second idea would have been to create the requirements for the Pohlig-Hellman algorithm to work. This can be done by fixing a prime modulus $p$ such that $p-1$ is B-smooth \todo{definition of B-smooth, should include it in the previous section tho} with B small enough for discrete logarithms in bases of order B to be possible.\\
+But then algorithms like Pollard Kangaroo that run in the same amount of time as Pollard Rho and that do not require the knowledge of the base's order could be used as well by anyone willing to try. This makes it a poorly hidden backdoor that we cannot qualify as NOBUS\todo{do we have a clear definition of NOBUS?}.
+
+Our first contribution (CM-HSS) in section 4 makes both of these ideas possible by using a composite modulus. GNFS and SNFS can then be used modulo the factors of the composite modulus, or the generator's ``small'' subgroups can be concealed modulo the factors as well.\\
+
+A second idea would be to set the scene for the Pohlig-Hellman algorithm to work. This can be done by fixing a prime modulus $p$ such that $p-1$ is B-smooth \todo{definition of B-smooth, should include it in the previous section tho} with B small enough for discrete logarithms in bases of order B to be possible.\\
 
 \begin{center}
 \begin{tikzpicture}[scale=.55]
@@ -279,7 +296,7 @@ $\varphi(p) = p-1 = p_1 \times \cdots \times p_k$};
 
 But this design is flawed in the same ways as the previous ones were: anyone can compute the order of the group ($p - 1$) and try to factor it. Anything below 300bits\todo{where does that number comes from?? show some ref} is relatively easy to factor using the \emph{Elliptic Curve Method} (ECM), a factorization algorithm which complexity only depends on the largest factor. This lower bound on the factors make it impossible for us to use our $\mathbb{O}(\sqrt{p-1})$ algorithm which would take more than $2^{150}$ operations to solve the discrete logarithm of such orders. \\
 
-Our second contribution in section 5 uses a composite modulus to hide the smoothness of the order (CM-SO) as long as the modulus cannot be factored. This method is preferred from the first contribution as it might only need a change of modulus. For example, in many DH parameters or implementations, $g=2$ as a generator is often used. While our first contribution will not allow any easy ways to find a specific generator, our second method will.
+Our second contribution in section 5 uses a composite modulus to hide the smoothness of the order (CM-HSO) as long as the modulus cannot be factored. This method is preferred from the first contribution as it might only need a change of modulus. For example, in many DH parameters or implementations, $g=2$ as a generator is often used. While our first contribution will not allow any easy ways to find a specific generator, our second method will.
 
 \section{A composite modulus for a NOBUS backdoor with a hidden subgroup(CM-HSS)}
 
@@ -371,16 +388,28 @@ $$\frac{p_1 p_2}{(p-1)(q-1)} \sim \frac{1}{pq} = \frac{1}{n} $$
 
 This is obviously too small of a probability for us to try to generate many parameters until one admits $g=2$ as a generator of our ``small'' subgroup. This is a problem if we want to replace secure values with our backdoored values, changing only one value (the modulus) would be more subtle than changing two values (the modulus and the generator). Our next contribution solves this problem.
 
-\todo{I should note that I can't use more than n=pq two primes, otherwise it gets too low and it's factorable, it should be treated like RSA}
+\todo{I should note that I can't use more than n=pq two primes, otherwise it gets too low and it's factorable, it should be treated like RSA. ECM? }
 
-\section{A Composite Modulus for a NOBUS Backdoor with a B-Smooth Order (CM-SO)}
+\section{A Composite Modulus for a NOBUS Backdoor with a B-Smooth Order (CM-HSO)}
 
-p-1 B2 is 10^15 ~ 50bits number
-so we need to use the large factor at 
+Let's start again with a composite modulus $n= pq$, but this time let's choose $p$ and $q$ such that $p-1$ and $q-1$ are both B-smooth with B small enough so that the discrete logarithm is do-able in subgroups of order B. We'll see later how to choose B.
 
-\todo{diagrams}
+Let $p-1 = p_1 \times \cdots \times p_k \times 2$ and $q-1 = q_1 \times \cdots \times q_l \times 2$ such that the union of the factors of $q-1$ and $p-1$ are pairwise co-primes and such that $p_i \leq B$ and $q_i \leq B$ for all $i \in [[1,k]]$ and $i \in [[1,l]]$ respectively. This makes the order of the group $\varphi(n) = (p-1)(q-1)$ B-smooth.
+
+Constructing the Diffie-Hellman modulus this way permits anyone with both the knowledge of the order factorization and the ability of computing the discrete logarithm in subgroups of order B, to compute the discrete logarithm modulo $n$. But one problem arises here: since $p-1$ and $q-1$ are both B-smooth, they are prone to the \emph{Pollard's p-1 factorization} algorithm, a factorization algorithm which find factors $p$ if $p-1$ are partially-smooth\todo{explanation of p-1?}.
+
+To counter that, we add a big factor to each $p-1$ and $q-1$ that we will call $p_{big}$ and $q_{big}$ respectively. \todo{we need to choose a number big enough so that DLOG is do-able, but p-1 is not}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{CMHSO.png}
+\end{figure}
+
+To exploit this backdoor we can reduce our key $y$ modulo $p$ and $q$ and do Pohlig-Hellman there, this is not a necessary step but this will reduce the size of the numbers in our calculations and thus be faster. We can then recompute the private key modulo its order, which will be at a maximum $\frac{(p-1)(q-1)}{2}$.\todo{ where does that come from? The CRT... but explain!}
 
 \todo{RESULTS, as above}
+
+p-1's B2 is $10^{15} \sim 50bits$ number, so we need to use the large factor at
 
 \section{Implementing and Exploiting the Backdoor in TLS}
 
