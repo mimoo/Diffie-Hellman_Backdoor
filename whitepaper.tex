@@ -73,8 +73,11 @@
 \date{\emph{NCC Group}, \small{March 2016}}
 
 % notes
-\usepackage[draft]{todonotes}
+\usepackage[disable]{todonotes}
 \setlength{\marginparwidth}{2cm}
+
+% [[ and ]]
+\usepackage{stmaryrd}
 
 % 
 \begin{document}
@@ -105,7 +108,7 @@ Around Christmas 2015, a company named \emph{Juniper} released an \href{https://
 
 Behind that modified number was hiding a \emph{Dual EC} value. Dual EC is a Pseudo-Random Number Generator (PRNG) that is believed to have been backdoored by the NSA \cite{dualEC}. The PRNG's core has the ability to provide a Nobody But Us (NOBUS) trapdoor: a secret passage that can only be accessed by the people holding the secret key. In our case: the elliptic curve discrete logarithm $k$ in the Dual EC equation $Q = [k]P$ (where $P$ and $Q$ are the two elliptic curve points used in the foundation of Dual EC).\\
 
-Although the quest to find the Juniper's backdoor and the numerous open questions that arose from that work are a fascinating read by itself \cite{juniper}, it is only the introduction of this work that aims to show how secure and strong cryptographic constructions are a simple and subtle change away from being your own secretive pipe-show.\\
+Although the quest to find the Juniper's backdoor and the numerous open questions that arose from that work are a fascinating read by itself\footnote{\hreaf{http://eprint.iacr.org/2016/376}{Checkoway at al: A Systematic Analysis of the Juniper Dual EC Incident (2016)}} \cite{juniper}, it is only the introduction of this work that aims to show how secure and strong cryptographic constructions are a simple and subtle change away from being your own secretive pipe-show.\\
 
 On February the 1st 2016, only a few months after Juniper's debacle, \emph{Socat} \href{http://www.openwall.com/lists/oss-security/2016/02/01/4}{published a security advisory of its own}.
 
@@ -380,7 +383,7 @@ We used the Pollard Rho function in Sage 6.10 on a macbook pro with an i7 Intel 
   \end{tabular*}
 \end{center} 
 
-A stronger and more clever attacker would parallelize this algorithm on more powerful machines to obtain better numbers. To be able to exploit the backdoor ``live'' we want a running-time close to zero. Using a 80 bits integer as our generator's order, someone with no knowledge of the factorization of the modulus would take around $2^{40}$ operations to compute a discrete logarithm while this would take us on average $2^{21}$ thanks to the trapdoor. A more serious adversary with a higher computation power and a care for security might want to choose a 200 bits integer as the generator's order. For that he would need to be able to perform $2^{50}$ operations instantaneously if he would want to tamper with the encrypted communications following the key exchange, while an outsider would have to perform an ``impossible'' number of $2^{100}$ operations.
+A stronger and more clever attacker would parallelize this algorithm on more powerful machines to obtain better numbers. To be able to exploit the backdoor ``live'' we want a running-time close to zero. Using a 80 bits integer as our generator's order, someone with no knowledge of the factorization of the modulus would take around $2^{40}$ operations to compute a discrete logarithm while this would take us on average $2^{21}$ thanks to the trapdoor. A more serious adversary with a higher computation power and a care for security might want to choose a 200 bits integer as the generator's order. For that he would need to be able to perform $2^{50}$ operations instantaneously if he would want to tamper with the encrypted communications following the key exchange, while an outsider would have to perform an ``impossible'' number of $2^{100}$ operations. The size of the two primes $p$ and $q$, and of the resulting $n = pq$, should be choosen large enough to resist against the same attacks as RSA. That is a $n$ of 2048 bits with $p$ and $q$ both being 1024 bits long would suffise.
 
 A problem here is that by choosing a modulus of this form, it will be close to impossible to find a fixed generator respecting these properties. The probability that an element in a group of order $q$ is the generator of a subgroup of order $d$ is $\frac{d}{q}$. This means that for example, if we want a generator $g=2$ (which is the default hardcoded Diffie-Hellman parameter of many implementations), we would need to generate many modulus hopping that particular generator would work. The probability that it would work each time would be :
 
@@ -394,7 +397,7 @@ This is obviously too small of a probability for us to try to generate many para
 
 Let's start again with a composite modulus $n= pq$, but this time let's choose $p$ and $q$ such that $p-1$ and $q-1$ are both B-smooth with B small enough so that the discrete logarithm is do-able in subgroups of order B. We'll see later how to choose B.
 
-Let $p-1 = p_1 \times \cdots \times p_k \times 2$ and $q-1 = q_1 \times \cdots \times q_l \times 2$ such that the union of the factors of $q-1$ and $p-1$ are pairwise co-primes and such that $p_i \leq B$ and $q_i \leq B$ for all $i \in [[1,k]]$ and $i \in [[1,l]]$ respectively. This makes the order of the group $\varphi(n) = (p-1)(q-1)$ B-smooth.
+Let $p-1 = p_1 \times \cdots \times p_k \times 2$ and $q-1 = q_1 \times \cdots \times q_l \times 2$ such that the union of the factors of $q-1$ and $p-1$ are pairwise co-primes and such that $p_i \leq B$ and $q_i \leq B$ for all $i \in \llbracket 1,k \rrbracket$ and $i \in [[1,l]]$ respectively. This makes the order of the group $\varphi(n) = (p-1)(q-1)$ B-smooth.
 
 Constructing the Diffie-Hellman modulus this way permits anyone with both the knowledge of the order factorization and the ability of computing the discrete logarithm in subgroups of order B, to compute the discrete logarithm modulo $n$. But one problem arises here: since $p-1$ and $q-1$ are both B-smooth, they are prone to the \emph{Pollard's p-1 factorization} algorithm, a factorization algorithm which find factors $p$ if $p-1$ are partially-smooth\todo{explanation of p-1?}.
 
@@ -407,9 +410,9 @@ To counter that, we add a big factor to each $p-1$ and $q-1$ that we will call $
 
 To exploit this backdoor we can reduce our key $y$ modulo $p$ and $q$ and do Pohlig-Hellman there, this is not a necessary step but this will reduce the size of the numbers in our calculations and thus be faster. We can then recompute the private key modulo its order, which will be at a maximum $\frac{(p-1)(q-1)}{2}$.\todo{ where does that come from? The CRT... but explain!}
 
-\todo{RESULTS, as above}
+If we look at the world's records for \emph{Pollard's p-1} factorization algorithm\footnote{http://www.loria.fr/~zimmerma/records/Pminus1.html}, the maximum number used for B2 is $10^{15} \sim 50bits$ in 2015. As with our previous method, we could use a much larger factor of around 80bits to avoid any powerful adversaries and have a pleasurable $2^{40}$ computations on average to solve the discrete logarithm problem in these large subgroups.
 
-p-1's B2 is $10^{15} \sim 50bits$ number, so we need to use the large factor at
+\todo{ajouter que comme ca on utilise un large subgroup, bien plus large que la premiere methode, on a aussi le choix de generator (proba?)}
 
 \section{Implementing and Exploiting the Backdoor in TLS}
 
@@ -491,7 +494,7 @@ how to avoid backdoors:
 
 \bibitem{dualEC} Bernstein, Lange and Niederhagen \href{https://eprint.iacr.org/2015/767.pdf}{Dual EC: A Standardized Back Door}
 
-\bibitem{juniper} Juniper {\em Juniper}
+\bibitem{juniper} Checkoway at al \href{http://eprint.iacr.org/2016/376}{A Systematic Analysis of the Juniper Dual EC Incident (2016)}
 
 \bibitem{logjam} Adrian, Bhargavan, Durumeric, Gaudry, Green, Halderman, Heninger, Springall, Thomé, Valenta,  VanderSloot, Wustrow, Zanella-Béguelin, Zimmermann \href{https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf}{Imperfect Forward Secrecy: How Diffie-Hellman Fails in Practice}
 
