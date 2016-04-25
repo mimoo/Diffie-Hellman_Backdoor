@@ -420,15 +420,62 @@ If we look at the world's records for \emph{Pollard's p-1} factorization algorit
 
 Theorically, any application including Diffie-Hellman could be backdoored using the previous two methods. TLS being one of the most well known example making use of Diffie-Hellman it is particularly interesting to backdoor.
 
-Most TLS applications using Diffie-Hellman have their DH public key and parameters baked into their certificate. Interestingly, the parameters of the \emph{ephemeral} version of Diffie-Hellman (DHE) (used to allow \emph{Perfect Forward Secrecy} to take place) are never placed into the certificate. Furthermore, most libraries implementing TLS (Socat, Apache, ...) have predefined or hardcoded ephemeral Diffie-Hellman parameters. Users of those libraries rarely generate their own parameters and use the default ones. The last years, a migration has been initiated to increase the bitsizes of Diffie-Hellman modulus from 1024 or lower to 2048+ bits. This seems like the perfect excuse to submit a backdoored patch claiming to improve the security of the library, and is exactly what happened to the open source tool Socat recently.
+Most TLS applications making use of the Diffie-Hellman algorithm for the handshake have their DH public key and parameters baked into user's or server's generated certificates. Interestingly, the parameters of the \emph{ephemeral} version of Diffie-Hellman, used to add the properties of \emph{Perfect Forward Secrecy}, are rarely chosen by end users and thus never engraved into user's or server's certificates. Furthermore, most libraries implementing the TLS protocol (Socat, Apache, Nginx, ...) have predefined or hardcoded ephemeral DH parameters. Developers using those libraries will rarely generate their own parameters and will use the default ones, which was last year the source of many discussions \todo{LOGJAM}. This also pushed a movement of migrating to bigger parameters and increase the bitsizes of application's Diffie-Hellman modulus from 1024 or lower to 2048+ bits. This trend seems like the perfect excuse to submit a backdoored patch claiming to improve the security of a library.
 
 At the start of a new \emph{handshake}, both the server and the client will send each other their DHE public key via a \emph{ServerKeyExchange} and a \emph{ClientKeyExchange} message respectively. The server will direct as well what are the DHE parameters via the same \emph{ServerKeyExchange} message.
 
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize]
+  \node (A) {Client};
+  \node (B) [right=5cm of A] {Server};
+
+  \node (Aend) [below=5cm of A];
+  \node (Bend) [below=5cm of B];
+  \draw[-] (A) -- (Aend);
+  \draw[-] (B) -- (Bend);
+
+  % clientHello.random 
+  \node (chr_s) [below=.5cm of A];
+  \node (chr_e) [below=.5cm of B];
+  \draw[->] (chr_s) -- (chr_e) node [midway, above] {ClientHello.random};
+
+  % serverHello.random 
+  \node (chr_s) [below=1cm of chr_s];
+  \node (chr_e) [below=1cm of chr_e];
+  \draw[<-] (chr_s) -- (chr_e) node [midway, above] {ServerHello.random};
+
+  % serverHello.random 
+  \node (chr_s) [below=1cm of chr_s];
+  \node (chr_e) [below=1cm of chr_e];
+  \draw[<-, align=center] (chr_s) -- (chr_e) node [midway, above] {ServerKeyExchange.DHparams \&\\ ServerKeyExchange.pubKey};
+
+  % serverHello.random 
+  \node (chr_s) [below=1cm of chr_s];
+  \node (chr_e) [below=1cm of chr_e];
+  \draw[->] (chr_s) -- (chr_e) node [midway, above] {ClientKeyExchange.pubKey};
+
+\end{tikzpicture}
+\end{center}
+
+\todo{add details about the public parameters in the serverkeyex? What about the other messages? maybe add them with a low opacity}
+
+Let \textbf{c} and \textbf{s} be the client and the server public keys respectively. The following computation is done on each side of the exchange:
+
+\begin{enumerate}
+  \item premaster\_secret $ = g^{cs}\pmod{n}$
+  \item master\_secret = PRF(premaster\_secret, ``master secret'', ClientHello.random + ServerHello.random)
+  \item keys = PRF(master\_secret, ``key expansion'', ServerHello.random + ClientHello.random)
+\end{enumerate}
+
+To be clear, the diffie-hellman output is stored in a \emph{premaster\_secret} variable that is sent into a pseudo-random function (PRF) with the string ``master secret'' and the public values \emph{random} of both parties taken from their Hello message as parameters. The output of the PRF is sent repeatidly into another PRF with the string ``key expansion'' as well as the reversed order of the \emph{random} values we just used, until enough bits are produced for the many keys used to encrypt and authenticate the post-handshake communications.
+
+\todo{add details on the sessino keys, the PRF, the random values??}
+
 \subsection{Exploitation}
 
-As any attack on TLS, we need first to obtain a Man-In-The-Middle position on between the client and the server.
+To exploit this kind of backdoor, we first need to obtain a Man-In-The-Middle position between the client and the server. This could be done by getting access to logs, and do a passive decryption after using the backdoor, but this was done actively in our proof of concept\todo{link to proof of concept} by using a machine as a proxy to the server and making the client connect to the proxy directly instead of the server. The proxy unintelligently forward the packets back and forth until a TLS connection is initiated, it then observes the handshake, storing the \emph{random} values at first, until the server decides to send its public Diffie-Hellman parameters to be used in an \emph{ephemeral} key exchange. If the proxy recognizes the backdoor parameters in the server's \emph{Server Key Exchange} message, it runs the attack, recovering one party's private key and computing the session keys out of that information. With the session keys in hand, the proxy can then observe the traffic in clear and even tamper with the messages being exchanged.
 
-\todo{explain handshake, server.random, premasterkeys, etc...}
+Depending on the security margins chosen during the generation of the backdoor, and on the computing power of the attacker, it might happen that the first messages being sent until a private key can be recovered cannot be tampered with. For better results, the work should be parallelized and the two public keys should be attacked as one might be result in a significantly faster attack. As soon as the private key of one of the party is recovered, the Diffie-Hellman and the session keys computations are done in a negligible time, and the proxy can start live decrypting and live tampering with the packets. If the attacker really wants to be able to tamper with the first messages, it can try sending \emph{TLS warning alerts} that can keep a handshake alive indifinitely or for a period of time depending on the application used by both parties\todo{LOGJAM: TLS warning alerts.  Web browsers tend to have shorter  timeouts, but we can keep their connections alive by sending  TLS warning alerts, which are ignored by the browser but  reset the handshake timer. For example, this allows us to keep  Firefox’s TLS connections alive indefinitely}
 
 \section{Detecting a backdoor and protecting against one}
 
