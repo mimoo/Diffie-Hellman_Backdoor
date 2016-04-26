@@ -119,9 +119,9 @@ In the OpenSSL address implementation the hard coded 1024 bit DH p parameter was
 
 In the same vein of Juniper's problem, a single number was changed. This time it was the public modulus number used to generate the ephemeral Diffie-Hellman keys of both parties during Socat's TLS handshakes. An algorithm that was contrarily to Dual-EC considered secure from the start, but badly understood as well.
 
-As the \emph{Logjam}\footnote{Adrian et al - \href{https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf}{Imperfect Forward Secrecy: How Diffie-Hellman Fails in Practice}}\cite{logjam} paper had discovered earlier last year, most servers would use Diffie-Hellman to perform ephemeral handshakes, and generate parameters from hardcoded defaults. The paper launched a wave of discussion around how users should use Diffie-Hellman, at the same time scaring people away from 1024 bits DH: ``We estimate that even in the 1024-bit case, the computations are plausible given nation-state resources''. The problem of implementing DH securely are unfortunately rarely well understood. The defense approach is discussed in several RFCs \cite{rfc2631} \cite{rfc2785}, but no paper so far take the point of view of the attacker. The combination of the current trend of increasing the bitsize of DH parameters with the now old trend of using open source libraries' defaults to generate ephemeral Diffie-Hellman keys, would give an opportunist attacker a valid excuse to submit his bigger (more secure) and backdoored parameters into open-source or closed-source libraries. This work is about generating such backdoors and implementing them in TLS. Code is included on github\footnote{href{https://github.com/mimoo/Diffie-Hellman_Backdoor}{https://github.com/mimoo/Diffie-Hellman_Backdoor}}.\\
+As the \emph{Logjam}\footnote{Adrian et al - \href{https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf}{Imperfect Forward Secrecy: How Diffie-Hellman Fails in Practice}}\cite{logjam} paper had discovered earlier last year, most servers would use Diffie-Hellman to perform ephemeral handshakes, and generate parameters from hardcoded defaults. The paper launched a wave of discussion around how users should use Diffie-Hellman, at the same time scaring people away from 1024 bits DH: ``We estimate that even in the 1024-bit case, the computations are plausible given nation-state resources''. The problem of implementing DH securely are unfortunately rarely well understood. The defense approach is discussed in several RFCs \cite{rfc2631} \cite{rfc2785}, but no paper so far take the point of view of the attacker. The combination of the current trend of increasing the bitsize of DH parameters with the now old trend of using open source libraries' defaults to generate ephemeral Diffie-Hellman keys, would give an opportunist attacker a valid excuse to submit his bigger (more secure) and backdoored parameters into open-source or closed-source libraries. This work is about generating such backdoors and implementing them in TLS. The working code along with explanations on how to reproduce our setup is included on github\footnote{\href{https://github.com/mimoo/Diffie-Hellman_Backdoor}{https://github.com/mimoo/Diffie-Hellman_Backdoor}}.\\
 
-\todo{redo all that part}In section 2, we will first discard some possible mistakes that the troublemaker could have made. In section 3 we will introduce the different attacks available on DH, from small subgroup attacks to Pohlig Hellman's algorithm. We will start by explaining how to implement a NOBUS backdoor in Diffie-Hellman in section 4, and we will follow with the bulk of our contribution in section 5: that is the different methods to achieve that goal. In section 6 we will see what's wrong with the previous methods, and use what we learned from that to try to reverse Socat's 1024 bit DH modulus. Informationally, we will test the security of the new 2048 bit DH modulus of Socat in section 7, and follow by brief explanations on how to secure a DH implementation. Eventually we will wrap it all in section 9.
+In section 2, we will first briefly talk about the several attacks possible on Diffie-Hellman, from small subgroup attacks to Pohlig Hellman's algorithm. In section 3 we will introduce our first attempt at a DH backdoor. We will present our first contribution in section 4 by using the ideas of the previous section with a composite modulus to make the backdoor a NOBUS one. In section 5 we will see another method using a composite modulus that allows us to choose a particular generator. In section 6 we will explain how we implemented the backdoor in TLS and how we exploited it. We will then see in section 7 how to detect such backdoors and how to prevent them. Eventually we will wrap it all in section 8.
 
 \section{Attacks on Diffie-Hellman and the Discrete Logarithm}
 
@@ -419,7 +419,6 @@ If we look at the world's records for \emph{Pollard's p-1} factorization algorit
 
 \section{Implementing and Exploiting the Backdoor in TLS}
 
-\subsection{Implementation}
 
 Theorically, any application including Diffie-Hellman could be backdoored using the previous two methods. TLS being one of the most well known example making use of Diffie-Hellman it is particularly interesting to backdoor.
 
@@ -474,9 +473,19 @@ To be clear, the diffie-hellman output is stored in a \emph{premaster\_secret} v
 
 \todo{add details on the sessino keys, the PRF, the random values??}
 
+\subsection{Implementation}
+
+\begin{itemize}
+    \item To implement the backdoor in Socat, change a few line in file
+    \item To implement the backdoor in OpenSSL, change a few line in file
+    \item To implement the backdoor in Apache, change a few line in file
+\end{itemize}
+
+But to test our backdoor, it's easier to just create an asn.1 file containing our backdoor parameters and to use it as a commandline argument (examples?)
+
 \subsection{Exploitation}
 
-To exploit this kind of backdoor, we first need to obtain a Man-In-The-Middle position between the client and the server. This could be done by getting access to logs, and do a passive decryption after using the backdoor, but this was done actively in our proof of concept\todo{link to proof of concept} by using a machine as a proxy to the server and making the client connect to the proxy directly instead of the server. The proxy unintelligently forward the packets back and forth until a TLS connection is initiated, it then observes the handshake, storing the \emph{random} values at first, until the server decides to send its public Diffie-Hellman parameters to be used in an \emph{ephemeral} key exchange. If the proxy recognizes the backdoor parameters in the server's \emph{Server Key Exchange} message, it runs the attack, recovering one party's private key and computing the session keys out of that information. With the session keys in hand, the proxy can then observe the traffic in clear and even tamper with the messages being exchanged.
+\todo{add a diagram}To exploit this kind of backdoor, we first need to obtain a Man-In-The-Middle position between the client and the server. This could be done by getting access to logs, and do a passive decryption after using the backdoor, but this was done actively in our proof of concept\todo{link to proof of concept} by using a machine as a proxy to the server and making the client connect to the proxy directly instead of the server. The proxy unintelligently forward the packets back and forth until a TLS connection is initiated, it then observes the handshake, storing the \emph{random} values at first, until the server decides to send its public Diffie-Hellman parameters to be used in an \emph{ephemeral} key exchange. If the proxy recognizes the backdoor parameters in the server's \emph{Server Key Exchange} message, it runs the attack, recovering one party's private key and computing the session keys out of that information. With the session keys in hand, the proxy can then observe the traffic in clear and even tamper with the messages being exchanged.
 
 Depending on the security margins chosen during the generation of the backdoor, and on the computing power of the attacker, it might happen that the first messages being sent until a private key can be recovered cannot be tampered with. For better results, the work should be parallelized and the two public keys should be attacked as one might be result in a significantly faster attack. As soon as the private key of one of the party is recovered, the Diffie-Hellman and the session keys computations are done in a negligible time, and the proxy can start live decrypting and live tampering with the packets. If the attacker really wants to be able to tamper with the first messages, it can try sending \emph{TLS warning alerts} that can keep a handshake alive indifinitely or for a period of time depending on the application used by both parties\todo{LOGJAM: TLS warning alerts.  Web browsers tend to have shorter  timeouts, but we can keep their connections alive by sending  TLS warning alerts, which are ignored by the browser but  reset the handshake timer. For example, this allows us to keep  Firefox’s TLS connections alive indefinitely}
 
@@ -490,6 +499,16 @@ To write in this section:
     \item theory on uniform distribution
     \item what to do? check for safe primes, even on client side
     \item or only accepts a few public parameters (like ECDH)
+\end{itemize}
+
+\subsection{Statistics}
+
+\begin{itemize}
+    \item We ran some tests on 50,222,805 TLS handshakes taken from scans.io from March 3rd 2016 (3n8y698qwr9ifi0e)
+    \item 4,522,263 made use of ephemeral DH
+    \item how many had a composite modulus?
+    \item how many were safe primes? -> make a pie chart
+    \item how many backdoor did we detect?
 \end{itemize}
 
 \subsection{Uniform Distribution}
