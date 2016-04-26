@@ -87,12 +87,12 @@
 Lately several backdoors in cryptographic constructions, protocols and implementations have been surfacing in the wild. Dual-EC in RSA's B-Safe product, A modified Dual-EC in Juniper's operating system ScreenOS and a non-prime modulus in the Socat open-source tool. The question on how fragile cryptographic constructions are if we do not use Nothing-Up-My-Sleeve numbers has came up in many papers, but the question on how to introduce a backdoor in an already secure, safe and easy to audit implementation has so far never been researched (in the public).\\
 In this work we present two ways of building a Nobody-But-Us Diffie-Hellman backdoor with a composite modulus and a hidden subgroup (CMHS) and with a composite modulus and a smooth order (CMSO). We then explain how we subtly implemented it and exploited it in various open source libraries using the TLS protocol.\\
 \\
-\textbf{Keywords:} Diffie-Hellman, Ephemeral, DHE, NOBUS, backdoor, Discrete Logarithm, Small subgroup attack, Pohlig-Hellman, Factorization, Pollard's p-1 algorithm, ECM, Dual EC, Juniper, Socat\\
+\textbf{Keywords:} Diffie-Hellman, Ephemeral, DHE, NOBUS, Backdoor, Discrete Logarithm, Small Subgroup Attack, Pohlig-Hellman, Pollard Rho, Factorization, Pollard's p-1, ECM, Dual-EC, Juniper, Socat\\
 
 \end{abstract}
 \section{Introduction}\label{introduction}
 
-Around Christmas 2015, a company named \emph{Juniper} released an \href{https://kb.juniper.net/InfoCenter/index?page=content&id=JSA10713&actp=search}{out of cycle security bulletin}. Two vulnerabilities were being semi-disclosed, without much details to help us grasp the seriousness of the situation. Fortunately, at this period of the year many researchers were home with nothing else to do but to try solving this puzzle. Quickly, by diffing both the patched and vulnerable binaries, the two issues were pinpointed. While one of the vulnerability was a simple ``master''-password implemented at a crucial step of the product's authentication, the other discovery was a bit more subtle: a unique value was modified. More accurately, a number was replaced. The introduction of the vulnerability was so trivial that the simple use of the unix command line tool \mintinline{bash}{strings} was enough to discover the change.
+\todo{shouldn't I start with kleptography, Lotus, RSA B-safe?}Around Christmas 2015, a company named \emph{Juniper} released an out of cycle security bulletin\footnote{\href{https://kb.juniper.net/InfoCenter/index?page=content&id=JSA10713&actp=search}{https://kb.juniper.net/InfoCenter/index?page=\\content&id=JSA10713&actp=search}}. Two vulnerabilities were being semi-disclosed, without much details to help us grasp the seriousness of the situation. Fortunately, at this period of the year many researchers were home with nothing else to do but to try solving this puzzle. Quickly, by diffing both the patched and vulnerable binaries, the two issues were pinpointed. While one of the vulnerability was a simple ``master''-password implemented at a crucial step of the product's authentication, the other discovery was a bit more subtle: a unique value was modified. More accurately, a number was replaced. The introduction of the vulnerability was so trivial that the simple use of the unix command line tool \mintinline{bash}{strings} was enough to discover the change.
 
 \begin{figure}[H]
 \centering
@@ -106,17 +106,20 @@ Around Christmas 2015, a company named \emph{Juniper} released an \href{https://
 \caption{The strings of the vulnerable binary}\label{screenOS}
 \end{figure}
 
-Behind that modified number was hiding a \emph{Dual EC} value. Dual EC is a Pseudo-Random Number Generator (PRNG) that is believed to have been backdoored by the NSA \cite{dualEC}. The PRNG's core has the ability to provide a Nobody But Us (NOBUS) trapdoor: a secret passage that can only be accessed by the people holding the secret key. In our case: the elliptic curve discrete logarithm $k$ in the Dual EC equation $Q = [k]P$ (where $P$ and $Q$ are the two elliptic curve points used in the foundation of Dual EC).\\
+Behind that modified number was hiding a \emph{Dual EC} value. Dual EC is a Pseudo-Random Number Generator (PRNG) that is believed to have been backdoored by the NSA\footnote{Bernstein, Lange and Niederhagen - \href{https://eprint.iacr.org/2015/767.pdf}{Dual EC: A Standardized Back Door}} \cite{dualEC}. The PRNG's core has the ability to provide a Nobody-But-Us (NOBUS) trapdoor: a secret passage that can only be accessed by the people holding the secret key. In our case: the elliptic curve discrete logarithm $k$ in the Dual EC equation $Q = [k]P$ (where $P$ and $Q$ are the two elliptic curve points used in the foundation of Dual EC).\\
+Solely the NSA is thought to be in possession of that $k$ value, leaving them the only ones able to climb back to the PRNG's internal state from random outputs, and then being able to predict the PRNG's future random outputs. But by modifying one of the point ($Q$), the change in Juniper's code magically allowed another organization, or person, to access that backdoor in place of the NSA.
 
-Although the quest to find the Juniper's backdoor and the numerous open questions that arose from that work are a fascinating read by itself\footnote{\hreaf{http://eprint.iacr.org/2016/376}{Checkoway at al: A Systematic Analysis of the Juniper Dual EC Incident (2016)}} \cite{juniper}, it is only the introduction of this work that aims to show how secure and strong cryptographic constructions are a simple and subtle change away from being your own secretive pipe-show.\\
+Although the quest to find the Juniper's backdoor and the numerous open questions that arose from that work are a fascinating read by itself\footnote{Checkoway et al - \href{http://eprint.iacr.org/2016/376}{A Systematic Analysis of the Juniper Dual EC Incident (2016)}} \cite{juniper}, it is only the introduction of this work that aims to show how secure and strong cryptographic constructions are a simple and subtle change away from being your own secretive pipe-show.\\
 
-On February the 1st 2016, only a few months after Juniper's debacle, \emph{Socat} \href{http://www.openwall.com/lists/oss-security/2016/02/01/4}{published a security advisory of its own}.
+On February the 1st 2016, only a few months after Juniper's debacle, \emph{Socat} published a security advisory of its own\footnote{\href{http://www.openwall.com/lists/oss-security/2016/02/01/4}{http://www.openwall.com/lists/oss-security/2016/02/01/4}}:
 
 \begin{displayquote}
 In the OpenSSL address implementation the hard coded 1024 bit DH p parameter was not prime. The effective cryptographic strength of a key exchange using these parameters was weaker than the one one could get by using a prime p. Moreover, since there is no indication of how these parameters were chosen, the existence of a trapdoor that makes possible for an eavesdropper to recover the shared secret from a key exchange that uses them cannot be ruled out.
 \end{displayquote}
 
-\todo{this is irrelevant, change that part. Also I should explain here that DHE is interesting to backdoor because unlike RSA, DH, ECDH, ... people use the default parameters of libraries/products and don't generate their own in a certificate}In the same vein of Juniper's problem, a single number was changed. But Socat's problems root deeper. A year before that suspicious 1024 bit Diffie-Hellman (DH) value was introduced, the free software would have served its TLS connection using a 512 bit DH modulus. The problem with such small DH parameters is already well known \cite{logjam}, in the paper the authors point out that most servers use common Diffie-Hellman parameters to generate their ephemeral Diffie-Hellman key exchanges, they point that the problem is that they are 1024bits which the NSA might be able to crack. This initiated a debate on how users should use Diffie-Hellman, should they generate their own DH parameters or use predefined parameters that RFC \todo{list the rfc with the DH groups} or libraries use by default? The problem of implementing DH securely are unfortunately rarely well understood as well. The defense approach is told in several RFCs \cite{rfc2631} \cite{rfc2785}, but no paper so far take the point of view of the attacker.\\
+In the same vein of Juniper's problem, a single number was changed. This time it was the public modulus number used to generate the ephemeral Diffie-Hellman keys of both parties during Socat's TLS handshakes. An algorithm that was contrarily to Dual-EC considered secure from the start, but badly understood as well.
+
+As the \emph{Logjam}\footnote{Adrian et al - \href{https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf}{Imperfect Forward Secrecy: How Diffie-Hellman Fails in Practice}}\cite{logjam} paper had discovered earlier last year, most servers would use Diffie-Hellman to perform ephemeral handshakes, and generate parameters from hardcoded defaults. The paper launched a wave of discussion around how users should use Diffie-Hellman, at the same time scaring people away from 1024 bits DH: ``We estimate that even in the 1024-bit case, the computations are plausible given nation-state resources''. The problem of implementing DH securely are unfortunately rarely well understood. The defense approach is discussed in several RFCs \cite{rfc2631} \cite{rfc2785}, but no paper so far take the point of view of the attacker. The combination of the current trend of increasing the bitsize of DH parameters with the now old trend of using open source libraries' defaults to generate ephemeral Diffie-Hellman keys, would give an opportunist attacker a valid excuse to submit his bigger (more secure) and backdoored parameters into open-source or closed-source libraries. This work is about generating such backdoors and implementing them in TLS. Code is included on github\footnote{href{https://github.com/mimoo/Diffie-Hellman_Backdoor}{https://github.com/mimoo/Diffie-Hellman_Backdoor}}.\\
 
 \todo{redo all that part}In section 2, we will first discard some possible mistakes that the troublemaker could have made. In section 3 we will introduce the different attacks available on DH, from small subgroup attacks to Pohlig Hellman's algorithm. We will start by explaining how to implement a NOBUS backdoor in Diffie-Hellman in section 4, and we will follow with the bulk of our contribution in section 5: that is the different methods to achieve that goal. In section 6 we will see what's wrong with the previous methods, and use what we learned from that to try to reverse Socat's 1024 bit DH modulus. Informationally, we will test the security of the new 2048 bit DH modulus of Socat in section 7, and follow by brief explanations on how to secure a DH implementation. Eventually we will wrap it all in section 9.
 
@@ -297,7 +300,7 @@ $\varphi(p) = p-1 = p_1 \times \cdots \times p_k$};
 \end{tikzpicture}
 \end{center}
 
-But this design is flawed in the same ways as the previous ones were: anyone can compute the order of the group ($p - 1$) and try to factor it. Anything below 300bits\todo{where does that number comes from?? show some ref} is relatively easy to factor using the \emph{Elliptic Curve Method} (ECM), a factorization algorithm which complexity only depends on the largest factor. This lower bound on the factors make it impossible for us to use our $\mathbb{O}(\sqrt{p-1})$ algorithm which would take more than $2^{150}$ operations to solve the discrete logarithm of such orders. \\
+But this design is flawed in the same ways as the previous ones were: anyone can compute the order of the group ($p - 1$) and try to factor it. Anything below 300bits\todo{where does that number comes from?? show some ref} is relatively easy to factor using the \emph{Elliptic Curve Method} (ECM), a factorization algorithm which complexity only depends on the smallest factor.\todo{but if it's a complete factorization, it's in the size of the second largest factor} This lower bound on the factors make it impossible for us to use our $\mathbb{O}(\sqrt{p-1})$ algorithm which would take more than $2^{150}$ operations to solve the discrete logarithm of such orders. \\
 
 Our second contribution in section 5 uses a composite modulus to hide the smoothness of the order (CM-HSO) as long as the modulus cannot be factored. This method is preferred from the first contribution as it might only need a change of modulus. For example, in many DH parameters or implementations, $g=2$ as a generator is often used. While our first contribution will not allow any easy ways to find a specific generator, our second method will.
 
@@ -397,9 +400,9 @@ This is obviously too small of a probability for us to try to generate many para
 
 Let's start again with a composite modulus $n= pq$, but this time let's choose $p$ and $q$ such that $p-1$ and $q-1$ are both B-smooth with B small enough so that the discrete logarithm is do-able in subgroups of order B. We'll see later how to choose B.
 
-Let $p-1 = p_1 \times \cdots \times p_k \times 2$ and $q-1 = q_1 \times \cdots \times q_l \times 2$ such that the union of the factors of $q-1$ and $p-1$ are pairwise co-primes and such that $p_i \leq B$ and $q_i \leq B$ for all $i \in \llbracket 1,k \rrbracket$ and $i \in [[1,l]]$ respectively. This makes the order of the group $\varphi(n) = (p-1)(q-1)$ B-smooth.
+Let $p-1 = p_1 \times \cdots \times p_k \times 2$ and $q-1 = q_1 \times \cdots \times q_l \times 2$ such that the union of the factors of $q-1$ and $p-1$ are pairwise co-primes and such that $p_i \leq B$ and $q_i \leq B$ for all $i \in \llbracket 1,k \rrbracket$ and $i \in [[1,l]]$ respectively. This makes the order of the group $\varphi(n) = (p-1)(q-1)$ B-smooth.\todo{better way to put it: if we list all the prime factors of p-1 and q-1, form the union of those sets, of course all members of the set are coprime (because they're individually prime). I think you mean lcm(p-1, q-1) =2; that is, other than the factor 2, p-1 and q-1 don't share any prime factors.}
 
-Constructing the Diffie-Hellman modulus this way permits anyone with both the knowledge of the order factorization and the ability of computing the discrete logarithm in subgroups of order B, to compute the discrete logarithm modulo $n$. But one problem arises here: since $p-1$ and $q-1$ are both B-smooth, they are prone to the \emph{Pollard's p-1 factorization} algorithm, a factorization algorithm which find factors $p$ if $p-1$ are partially-smooth\todo{explanation of p-1?}.
+Constructing the Diffie-Hellman modulus this way permits anyone with both the knowledge of the order factorization and the ability of computing the discrete logarithm in subgroups of order B, to compute the discrete logarithm modulo $n$ by using the Pohlig-Hellman method. But one problem arises here: since $p-1$ and $q-1$ are both B-smooth, they are prone to the \emph{Pollard's p-1 factorization} algorithm, a factorization algorithm which find a factor $p$ if $p-1$ is partially-smooth\todo{explanation of p-1?}.
 
 To counter that, we add a big factor to each $p-1$ and $q-1$ that we will call $p_{big}$ and $q_{big}$ respectively. \todo{we need to choose a number big enough so that DLOG is do-able, but p-1 is not}
 
@@ -408,7 +411,7 @@ To counter that, we add a big factor to each $p-1$ and $q-1$ that we will call $
 \includegraphics[width=\columnwidth]{CMHSO.png}
 \end{figure}
 
-To exploit this backdoor we can reduce our key $y$ modulo $p$ and $q$ and do Pohlig-Hellman there, this is not a necessary step but this will reduce the size of the numbers in our calculations and thus be faster. We can then recompute the private key modulo its order, which will be at a maximum $\frac{(p-1)(q-1)}{2}$.\todo{ where does that come from? The CRT... but explain!}
+To exploit this backdoor we can reduce our public key $y$ modulo $p$ and $q$ and do Pohlig-Hellman there, this is not a necessary step but this will reduce the size of the numbers in our calculations and speed up the attack. We can then recompute the private key modulo its order, which will be at a maximum $\frac{(p-1)(q-1)}{2}$.\todo{ where does that come from? The CRT... but explain!}
 
 If we look at the world's records for \emph{Pollard's p-1} factorization algorithm\footnote{http://www.loria.fr/~zimmerma/records/Pminus1.html}, the maximum number used for B2 is $10^{15} \sim 50bits$ in 2015. As with our previous method, we could use a much larger factor of around 80bits to avoid any powerful adversaries and have a pleasurable $2^{40}$ computations on average to solve the discrete logarithm problem in these large subgroups.
 
@@ -479,7 +482,15 @@ Depending on the security margins chosen during the generation of the backdoor, 
 
 \section{Detecting a backdoor and protecting against one}
 
-Detect for non-prime modulus. No reason not to use safe primes.
+To write in this section:
+
+\begin{itemize}
+    \item tool testDHparams?
+    \item statistics made on scans.io
+    \item theory on uniform distribution
+    \item what to do? check for safe primes, even on client side
+    \item or only accepts a few public parameters (like ECDH)
+\end{itemize}
 
 \subsection{Uniform Distribution}
 
@@ -523,44 +534,52 @@ how to avoid backdoors:
 
 \section{Conclusion and Open Problem}
 
-- backdoor in Ephemeral Elliptic Curve Diffie-Hellman (ECDHE)?
+To write in this section:
 
-- implementing DH correctly is not that hard
-- easy to backdoor
-- is it really a backdoor? Since we can't factor it... maybe not (maybe give estimations to factor it, and to use the backdoor if it is indeed a backdoor with such big factors)
-- people need to verify open source
-- people are going away from DHE and to ECDHE ( https://weakdh.org/sysadmin.html )
+\begin{enumerate}
+\item backdoor in Ephemeral Elliptic Curve Diffie-Hellman Open problem
+\item easy to backdoor
+\item  implementing DH correctly is not that hard, test for safe primes!
+\item  this can be implented in the client side as well, refuse non-safe primes
+\item  people need to verify open source more often, Socat stayed with a non-prime modulus for a year.
+\item  closed-source? How common is this problem?
+\item  people are going away from DHE and to ECDHE ( https://weakdh.org/sysadmin.html )
+\end{enumerate}
+
+\newpage
 \newpage
 
 \section*{Acknowledgements}
 
+\begin{enumerate}
+    \item stack overflow, reddit, hackernews people (check the threads to see the names)
+\end{enumerate}
 
 \newpage
 
 \begin{thebibliography}{1}
 
-\bibitem{dualEC} Bernstein, Lange and Niederhagen \href{https://eprint.iacr.org/2015/767.pdf}{Dual EC: A Standardized Back Door}
+\bibitem{dualEC} Bernstein, Lange and Niederhagen - \href{https://eprint.iacr.org/2015/767.pdf}{Dual EC: A Standardized Back Door}
 
-\bibitem{juniper} Checkoway at al \href{http://eprint.iacr.org/2016/376}{A Systematic Analysis of the Juniper Dual EC Incident (2016)}
+\bibitem{juniper} Checkoway et al - \href{http://eprint.iacr.org/2016/376}{A Systematic Analysis of the Juniper Dual EC Incident (2016)}
 
-\bibitem{logjam} Adrian, Bhargavan, Durumeric, Gaudry, Green, Halderman, Heninger, Springall, Thomé, Valenta,  VanderSloot, Wustrow, Zanella-Béguelin, Zimmermann \href{https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf}{Imperfect Forward Secrecy: How Diffie-Hellman Fails in Practice}
+\bibitem{logjam} Adrian, Bhargavan, Durumeric, Gaudry, Green, Halderman, Heninger, Springall, Thomé, Valenta,  VanderSloot, Wustrow, Zanella-Béguelin, Zimmermann -  \href{https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf}{Imperfect Forward Secrecy: How Diffie-Hellman Fails in Practice}
 
-\bibitem{rfc2631} RFC 2631: \href{https://tools.ietf.org/html/rfc2631}{Diffie-Hellman Key Agreement Method}
+\bibitem{rfc2631} RFC 2631 - \href{https://tools.ietf.org/html/rfc2631}{Diffie-Hellman Key Agreement Method}
 
-\bibitem{rfc2785} RFC 2785: \href{https://tools.ietf.org/html/rfc2785}{Methods for Avoiding the "Small-Subgroup" Attacks on the Diffie-Hellman Key Agreement Method for S/MIME}
+\bibitem{rfc2785} RFC 2785 - \href{https://tools.ietf.org/html/rfc2785}{Methods for Avoiding the "Small-Subgroup" Attacks on the Diffie-Hellman Key Agreement Method for S/MIME}
 
-\bibitem{PH} S. Pohlig and M. Hellman "\href{http://www-ee.stanford.edu/~hellman/publications/28.pdf}{An Improved Algorithm for Computing Logarithms over GF(p) and its Cryptographic Significance}"
+\bibitem{PH} S. Pohlig and M. Hellman - \href{http://www-ee.stanford.edu/~hellman/publications/28.pdf}{An Improved Algorithm for Computing Logarithms over GF(p) and its Cryptographic Significance}
 
-\bibitem{ecpp} Frank Li \href{http://theory.stanford.edu/~dfreeman/cs259c-f11/finalpapers/primalityproving.pdf}{An Overview of Elliptic Curve Primality Proving}
+\bibitem{ecpp} Frank Li - \href{http://theory.stanford.edu/~dfreeman/cs259c-f11/finalpapers/primalityproving.pdf}{An Overview of Elliptic Curve Primality Proving}
 
-\bibitem{sicp} Abelson, Sussman, Sussman \href{https://mitpress.mit.edu/sicp/chapter1/footnode.html#2413}{Structure and Interpretation of Computer Programs}
+\bibitem{sicp} Abelson, Sussman, Sussman -  \href{https://mitpress.mit.edu/sicp/chapter1/footnode.html#2413}{Structure and Interpretation of Computer Programs}
 
-\bibitem{tls12} RFC 5246: \href{https://www.ietf.org/rfc/rfc5246.txt}{The Transport Layer Security (TLS) Protocol Version 1.2}
+\bibitem{tls12} RFC 5246 - \href{https://www.ietf.org/rfc/rfc5246.txt}{The Transport Layer Security (TLS) Protocol Version 1.2}
 
-\bibitem{fasterRSA} Shinde, Fadewar \href{http://www.techscience.com/doi/10.3970/icces.2008.005.255.pdf}{Faster RSA Algorithm for Decryption Using Chinese
-Remainder Theorem}
+\bibitem{fasterRSA} Shinde, Fadewar -  \href{http://www.techscience.com/doi/10.3970/icces.2008.005.255.pdf}{Faster RSA Algorithm for Decryption Using Chinese Remainder Theorem}
 
-\bibitem{lagrange} Lagrange, J. L. (1771). "\href{https://books.google.com/books?id=_-U_AAAAYAAJ&pg=PA138#v=onepage&q&f=false}{Suite des réflexions sur la résolution algébrique des équations. Section troisieme. De la résolution des équations du cinquieme degré & des degrés ultérieurs.}"
+\bibitem{lagrange} Lagrange, J. L. (1771). - \href{https://books.google.com/books?id=_-U_AAAAYAAJ&pg=PA138#v=onepage&q&f=false}{Suite des réflexions sur la résolution algébrique des équations. Section troisieme. De la résolution des équations du cinquieme degré & des degrés ultérieurs.}
 
 \end{thebibliography}
 
