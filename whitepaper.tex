@@ -152,7 +152,7 @@ The algorithm that interests us here is Pollard Rho: it is fast in relatively sm
   g^{xa +b } = g^{xa' + b'} \pmod{p}&\\
   \implies x = (a-a')^{-1} (b' - b) \pmod{p-1}&
 \end{align*}
-The birthday paradox tells us that by looking for a random collision we can quickly find one in $\mathbb{O}(\sqrt{p})$. A random function is used to efficiently step through various $g^{xa + b}$ until two values repeat themselves, it is then straightforward to calculate $x$. Cycle-finding algorithms are used to avoid storing every iterations of the algorithm (Two different iterations of $g^{xa+b}$ are started and end up in a loop passed a certain step) and the technique of distinghuished points is used to parallelize the algorithm (paralleled machines only save and share particular iterations, for example iterations starting with a chosen number of zeros).
+The birthday paradox tells us that by looking for a random collision we can quickly find one in $\mathcal{O}(\sqrt{p})$. A random function is used to efficiently step through various $g^{xa + b}$ until two values repeat themselves, it is then straightforward to calculate $x$. Cycle-finding algorithms are used to avoid storing every iterations of the algorithm (Two different iterations of $g^{xa+b}$ are started and end up in a loop passed a certain step) and the technique of distinghuished points is used to parallelize the algorithm (paralleled machines only save and share particular iterations, for example iterations starting with a chosen number of zeros).
 
 \subsection{Pohlig-Hellman}
 
@@ -269,7 +269,9 @@ The fourth step can be done by having access to an oracle telling you what is th
 
 \section{A First Backdoor Attempt in Prime Groups}
 
-The naive approach would be to weaken the parameters enough to make the computation of discrete logarithms affordable. Making the modulus a prime of a special form ($r^e + s$ with small $r$ and $s$) would facilitate the Special Number Field Sieve (SNFS) algorithm. Having a small modulus would also allow for easier pre-computation of the General Number Field Sieve (GNFS) algorithm. In [\todo{need ref}logjam] it is believed that the NSA has enough power to achieve the first pre-computing phases of GNFS on 1024bits prime which would then allow them to compute discrete logarithms in such large primes in the matter of seconds. But these ideas are pure computational advantages that involve no secret key to make the use of efficient backdoors possible. Moreover they are downright not practical: the attacker would have to re-do the pre-computing phase entirely for every different modulus, and the next generation of recommended modulus bitsize (2048+) would make these kind of computational advantages fruitless. Another approach could be to use a generator of a smaller subgroup (without publishing what smaller subgroup we use) so that algorithms like Pollard Rho would be cost-effective again.
+The naive approach would be to weaken the parameters enough to make the computation of discrete logarithms affordable. Making the modulus a prime of a special form ($r^e + s$ with small $r$ and $s$) would facilitate the Special Number Field Sieve (SNFS) algorithm. Having a small modulus would also allow for easier pre-computation of the General Number Field Sieve (GNFS) algorithm. It is believed\footnote{Adrian et al - Imperfect Forward Secrecy: How Diffie-Hellman Fails in Practice (2015)}\cite{logjam} that the NSA has enough power to achieve the first pre-computing phases of GNFS on 1024 bits primes which would then allow them to compute discrete logarithms in such large groups in the matter of seconds. But these ideas are pure computational advantages that involve no secret key to make the use of efficient backdoors possible. Moreover they are downright not practical: the attacker would have to re-do the pre-computing phase entirely for every different modulus, and the next generation of recommended modulus bitsize (2048+) would make these kind of computational advantages fruitless.\\
+
+Another approach could be to use a generator of a smaller subgroup (without publishing what smaller subgroup we use) so that algorithms like Pollard Rho would be cost-effective again.
 
 \begin{center}
 \begin{tikzpicture}[scale=.55]
@@ -286,11 +288,11 @@ The naive approach would be to weaken the parameters enough to make the computat
 \end{tikzpicture}
 \end{center}
 
-But then algorithms like Pollard Kangaroo that run in the same amount of time as Pollard Rho and that do not require the knowledge of the base's order could be used as well by anyone willing to try. This makes it a poorly hidden backdoor that we cannot qualify as NOBUS\todo{do we have a clear definition of NOBUS?}.
+But then algorithms like Pollard Kangaroo that run in the same amount of time as Pollard Rho and that do not require the knowledge of the base's order could be used as well by anyone willing to try. This makes it a poorly hidden backdoor that we cannot qualify as NOBUS.\\
 
-Our first contribution (CM-HSS) in section 4 makes both of these ideas possible by using a composite modulus. GNFS and SNFS can then be used modulo the factors of the composite modulus, or the generator's ``small'' subgroups can be concealed modulo the factors as well.\\
+Our first contribution (CM-HSS) in section 4 makes both of these ideas possible by using a composite modulus. GNFS and SNFS can then be used modulo the factors of the composite modulus, or better as we will see, the generator's ``small'' subgroups can be concealed modulo the factors.\\
 
-A second idea would be to set the scene for the Pohlig-Hellman algorithm to work. This can be done by fixing a prime modulus $p$ such that $p-1$ is B-smooth \todo{definition of B-smooth, should include it in the previous section tho} with B small enough for discrete logarithms in bases of order B to be possible.\\
+Back to our prime modulus. A second idea would be to set the scene for the Pohlig-Hellman algorithm to work. This can be done by fixing a prime modulus $p$ such that $p-1$ is B-smooth \todo{definition of B-smooth, should include it in the previous section tho} with B small enough for discrete logarithms in bases of order B to be possible.\\
 
 \begin{center}
 \begin{tikzpicture}[scale=.55]
@@ -316,7 +318,7 @@ $\varphi(p) = p-1 = p_1 \times \cdots \times p_k$};
 \end{tikzpicture}
 \end{center}
 
-But this design is flawed in the same ways as the previous ones were: anyone can compute the order of the group ($p - 1$) and try to factor it. Anything below 300bits\todo{where does that number comes from?? show some ref} is relatively easy to factor using the \emph{Elliptic Curve Method} (ECM), a factorization algorithm which complexity only depends on the smallest factor.\todo{but if it's a complete factorization, it's in the size of the second largest factor} This lower bound on the factors make it impossible for us to use our $\mathbb{O}(\sqrt{p-1})$ algorithm which would take more than $2^{150}$ operations to solve the discrete logarithm of such orders. \\
+But this design is flawed in the same ways as the previous ones were: anyone can compute the order of the group (by subtracting $1$ from $p$) and try to factor it. Choosing $p$ such that $p-1$ would include factors small enough to use one of the $\mathcal{O}(\sqrt{p})$ would make it dangerously factorisable. Using the \emph{Elliptic Curve Method} (ECM), a factorization algorithm which complexity only depends on the size of the smallest factor (or for a full factorization, on the size of the second largest factor), the latest records\footnote{\url{http://www.loria.fr/~zimmerma/records/ecmnet.html}} were able to find factors of around 250 bits. This necessary lower bound on the factors makes it unfeasible to use any of the $\mathcal{O}(\sqrt{p})$ algorithms which would take, for example, more than $2^{150}$ operations to solve the discrete logarithm of 300 bits orders. \\
 
 Our second contribution in section 5 uses a composite modulus to hide the smoothness of the order (CM-HSO) as long as the modulus cannot be factored. This method is preferred from the first contribution as it might only need a change of modulus. For example, in many DH parameters or implementations, $g=2$ as a generator is often used. While our first contribution will not allow any easy ways to find a specific generator, our second method will.
 
@@ -538,7 +540,7 @@ From \href{http://cacr.uwaterloo.ca/hac/about/chap3.pdf}{Handbook of Applied Cry
     \begin{enumerate}
         \item if $1/2 \leq \alpha \leq 1$, then the probability that the largest prime factor of $n$ is $\leq x^{\alpha}$ is approximately $1+ ln(\alpha)$. Thus, for example, the probability than $n$ has a prime factor $> \sqrt(x)$ is $ln(2) \approx 0.69$
         \item The probability that the second-largest prime factor of $n$ is $\leq x^{0.2117}$ is about $1/2$. 
-        \item The expected total number of prime factors of $n$ is $ln ln x + \mathbb{O}(1)$. (If $n = \prod p_i^{e_i}$, the total number of prime factors of n is $\sum e_i$.)
+        \item The expected total number of prime factors of $n$ is $ln ln x + \mathcal{O}(1)$. (If $n = \prod p_i^{e_i}$, the total number of prime factors of n is $\sum e_i$.)
     \end{enumerate} 
 \end{definition}
 
@@ -584,6 +586,8 @@ To write in this section:
 \newpage
 
 \section*{Acknowledgements}
+
+I want to thank Scott Fluhrer, without who I would not have made it far in this paper :) he provided many ideas and his mentorship was 5/5. I want to equally thank Scott Contini with who I had many helpful discussions as well.
 
 \begin{enumerate}
     \item stack overflow, reddit, hackernews people (check the threads to see the names)
