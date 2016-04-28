@@ -121,6 +121,21 @@ In the same vein of Juniper's problem, a single number was changed. This time it
 
 The problem of implementing DH securely is unfortunately rarely well understood. The defense approach is discussed in several RFCs \cite{rfc2631} \cite{rfc2785}, but no paper so far take the point of view of the attacker. The combination of the current trend of increasing the bitsize of DH parameters with the now old trend of using open source libraries' defaults to generate ephemeral Diffie-Hellman keys would give an opportunist attacker a valid excuse to submit his bigger (more secure) and backdoored parameters into open-source or closed-source libraries. This work is about generating such backdoors and implementing them in TLS, showing how easy and subtle the process is. The working code along with explanations on how to reproduce our setup is included on github\footnote{\url{https://github.com/mimoo/Diffie-Hellman_Backdoor}}.\\
 
+According to a paper of Schneier et al\footnote{Schneier et al - Surreptitiously Weakening Cryptographic Systems}\cite{surreptitiously} listing potentially intentional backdoors found in the wild, our contribution scores as one of the best backdoor you could bake. Here is a run down of the scoring system, with the example of the Socat backdoor to illustrate our grading:
+
+\begin{itemize}
+    \item \emph{high undetectability}: to discover the backdoor one would have to test for the primality of the modulus. As seen in the case of Socat, a commonly used tool, this can take a year
+    \item \emph{high lack of conspiracy}: in the case of Socat only the person who had submitted the vulnerability would be the target of investigation. It turns out he is a generic employee at Oracle.
+    \item \emph{high plausible deniability}: Three things help us in the creation of a good story in the Socat's case: reversing bytes of the fake prime gives us a prime, some small factors were found, anyone with weak knowledge of cryptography could have submitted a composite number.
+    \item \emph{medium ease of use}: Man-in-the-middling the attack and observing the first handshake would allow the attacker to take advantage of the backdoor
+    \item \emph{high severity}: having access to that backdoor lets us observe, or if done in real time let us tamper with any communications made over TLS.
+    \item \emph{medium durability}: System admins would have to update to newer versions to get the backdoor removed.
+    \item \emph{high moniterability}: The saboteur cannot detect if other attackers are taking advantage of the backdoor, which is OK since the backdoor in this work are NOBUS ones.
+    \item \emph{high scale}: Backdooring an open-source library would allow access to many systems' and users' communications.
+    \item \emph{high precision}: The saboteur doesn't weaken any system, only the saboteur himself can access the backdoor.
+    \item \emph{high control}: Like Dual-EC, only the saboteur can exploit the backdoor.
+\end{itemize}
+
 In section 2, we will first briefly talk about the several attacks possible on Diffie-Hellman, from small subgroup attacks to Pohlig Hellman's algorithm. In section 3 we will introduce our first attempt at a DH backdoor. We will present our first contribution in section 4 by using the ideas of the previous section with a composite modulus to make the backdoor a NOBUS one. In section 5 we will see another method using a composite modulus that allows us to choose a particular generator, this will allow us to only modify the modulus value when implementing our backdoor. In section 6 we will explain how we implemented the backdoor in TLS and how we exploited it. We will then see in section 7 how to detect such backdoors and how to prevent them. Eventually we will wrap it all in section 8.
 
 \section{Attacks on Diffie-Hellman and the Discrete Logarithm}
@@ -584,9 +599,13 @@ To write in this section:
 
 \bibitem{logjam} Adrian, Bhargavan, Durumeric, Gaudry, Green, Halderman, Heninger, Springall, Thomé, Valenta,  VanderSloot, Wustrow, Zanella-Béguelin, Zimmermann -  \href{https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf}{Imperfect Forward Secrecy: How Diffie-Hellman Fails in Practice}
 
+\bibitem{shumow-ferguson} Shumow and Ferguson - \href{http://rump2007.cr.yp.to/15-shumow.pdf}{On the Possibility of a Back Door in the NIST SP800-90 Dual Ec Prng} (at Crypto 2007)
+
 \bibitem{rfc2631} RFC 2631 - \href{https://tools.ietf.org/html/rfc2631}{Diffie-Hellman Key Agreement Method}
 
 \bibitem{rfc2785} RFC 2785 - \href{https://tools.ietf.org/html/rfc2785}{Methods for Avoiding the "Small-Subgroup" Attacks on the Diffie-Hellman Key Agreement Method for S/MIME}
+
+\bibitem{surreptitiously} Schneier, Fredrikson, Kohno and Ristenpart - \href{https://eprint.iacr.org/2015/097.pdf}{Surreptitiously Weakening Cryptographic Systems}
 
 \bibitem{PH} S. Pohlig and M. Hellman - \href{http://www-ee.stanford.edu/~hellman/publications/28.pdf}{An Improved Algorithm for Computing Logarithms over GF(p) and its Cryptographic Significance}
 
