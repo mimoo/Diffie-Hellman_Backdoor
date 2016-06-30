@@ -182,13 +182,77 @@ def CM_HSO(modulus_size, small_factors_size, big_factor_size, generator=0):
     # ->
     return g, modulus, p, q, factors
 
+# same as CM-HSO except the order of g doesn't have big groups
+def CM_HSO_HSS(modulus_size, small_factors_size, big_factor_size):
+    """ n = p * q, s.t. p-1 and q-1 are B-smooth (for Pohlig-Hellman)
+    with B large enough to counter Pollard's p-1 factorization algorithm
+    latest records of Pollard's p-1 used B = 10^15 (~50bits)
+    p-1, q-1 will have one factor of size `upper_smooth_size` and all others of size `smooth_size`
+    """
+    # p - 1 = B_prime * small_prime_1 * small_prime2 * ...
+    p, p_factors = B_smooth(modulus_size//2, small_factors_size, big_factor_size)
+    q, q_factors = B_smooth(modulus_size//2, small_factors_size, big_factor_size)
+    factors = p_factors + q_factors
+
+    # modulus
+    modulus = p * q
+
+    # the order of the non-cyclic group
+    order = (p-1)*(q-1)
+    # the maximum order of a subgroup
+    order_max = (p-1)*(q-1)//2
+    # the order targeted by our generator
+    order_target = (p-1)*(q-1)//(p_factors[1] * q_factors[1])
+
+    # find a random generator
+    order_final = order_max
+    while order_final >= order_target:
+        gp = GF(p).multiplicative_generator()
+        gp = power_mod(gp, p_factors[1], p)
+        gq = GF(q).multiplicative_generator()
+        gq = power_mod(gq, q_factors[1], q)
+        g = CRT(int(gp), int(gq), p, q)
+        order_final, factors = find_order(g, order, modulus, factors)
+                    
+    # split order
+    p_order = order % (p-1)
+    q_order = order % (q-1)
+
+    if p_order == 0:
+        p_order = p-1
+    if q_order == 0:
+        q_order = q-1
+
+    # split factors
+    if p_order != p-1 or q_order != q-1:
+        p_factors, q_factors = [], []
+        for factor in factors:
+            if p-1 % factor == 0:
+                p_factors.append(factor)
+            if q-1 % factor == 0:
+                q_factors.append(factor)
+
+    # print
+    print "modulus          =", modulus
+    print "bitlength        =", len(bin(modulus)) - 2
+    print "p, q             =", p, ",", q
+    print "p_order          =", p_order
+    print "q_order          =", q_order
+    print "p_factors        =", p_factors
+    print "q_factors        =", q_factors
+    print "generator        =", g
+
+    # ->
+    return g, modulus, p, q, factors
+
+
 ################################################################# 
 # Main menu
 ################################################################# 
 
 menu = [
-    "composite modulus with hidden subgroup",
-    "composite modulus with B-smooth order"
+    "composite modulus with hidden small subgroup (CM-HSS)",
+    "composite modulus with B-smooth order (CM-HSO)"
         ]
 
 def main():
@@ -214,6 +278,7 @@ def main():
 if __name__ == "__main__":
     main()
 else:
-    g, n, p, q, factors = CM_HSO(1024, 20, 40, 2)
+    #g, n, p, q, factors = CM_HSO(1024, 20, 40, 2)
+    g, n, p, q, factors = test(1024, 20, 40)
 
 
